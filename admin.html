@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>StorySpark Admin — Scene Generator</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#0D0F1A;--paper:#F7F5EF;--gold:#E8A020;--blue:#1B3FD8;--green:#1A7A4A;--red:#C0392B;--border:#E2DDD5;--muted:#6B6F7E;--mono:'DM Mono',monospace;--sans:'Plus Jakarta Sans',sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}body{font-family:var(--sans);background:var(--ink);color:#E8E5DC;min-height:100vh}
+.hdr{padding:18px 28px;border-bottom:1px solid rgba(255,255,255,.1);display:flex;align-items:center;gap:14px}
+.hdr-logo{font-size:18px;font-weight:800;color:#fff}.hdr-badge{background:var(--gold);color:var(--ink);font-size:10px;font-weight:800;padding:3px 10px;border-radius:20px;letter-spacing:.08em}
+.body{max-width:900px;margin:0 auto;padding:32px 24px}
+.setup-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:24px}
+.field label{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;display:block;margin-bottom:6px}
+.field input{width:100%;padding:10px 14px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:8px;font-size:13px;font-family:var(--mono);color:#E8E5DC;outline:none}
+.field input:focus{border-color:var(--gold)}
+h2{font-size:20px;font-weight:800;margin-bottom:4px}
+.sub{font-size:13px;color:var(--muted);margin-bottom:20px}
+.theme-tabs{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap}
+.tab{padding:8px 18px;border-radius:20px;border:1.5px solid rgba(255,255,255,.15);background:transparent;color:var(--muted);font-size:13px;font-weight:700;cursor:pointer;transition:all .2s}
+.tab:hover{border-color:rgba(255,255,255,.4);color:#fff}
+.tab.on{border-color:var(--gold);background:rgba(232,160,32,.15);color:var(--gold)}
+.controls{display:flex;gap:10px;margin-bottom:20px;align-items:center;flex-wrap:wrap}
+.btn{padding:10px 22px;border-radius:8px;font-size:13px;font-weight:800;cursor:pointer;border:none;transition:all .2s;font-family:var(--sans)}
+.btn-gold{background:var(--gold);color:var(--ink)}.btn-gold:hover{opacity:.9}
+.btn-green{background:#1A7A4A;color:#fff}.btn-green:hover{opacity:.9}
+.btn-ghost{background:transparent;border:1.5px solid rgba(255,255,255,.2);color:#E8E5DC}.btn-ghost:hover{border-color:rgba(255,255,255,.5)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.progress-bar-wrap{flex:1;min-width:200px;background:rgba(255,255,255,.08);border-radius:20px;height:8px;overflow:hidden}
+.progress-bar{height:100%;background:linear-gradient(90deg,var(--blue),var(--gold));border-radius:20px;width:0%;transition:width .5s}
+.progress-lbl{font-size:12px;color:var(--muted);font-family:var(--mono)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
+.scene-card{background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.1);border-radius:10px;overflow:hidden;position:relative}
+.scene-card img{width:100%;height:130px;object-fit:cover;display:block}
+.scene-ph{width:100%;height:130px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.05);font-size:32px}
+.scene-ph.loading{animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.4}50%{opacity:1}}
+.scene-info{padding:8px 10px}
+.scene-num{font-size:10px;font-family:var(--mono);color:var(--muted)}
+.scene-title{font-size:11px;font-weight:700;color:#E8E5DC;margin-top:2px;line-height:1.3}
+.scene-badge{position:absolute;top:6px;right:6px;width:20px;height:20px;border-radius:50%;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.badge-done{background:#1A7A4A;color:#fff}
+.badge-error{background:var(--red);color:#fff}
+.badge-skip{background:rgba(255,255,255,.2);color:#fff}
+.log{background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:12px 14px;font-family:var(--mono);font-size:11px;line-height:1.8;max-height:200px;overflow-y:auto;margin-top:16px;color:#A8C8F0}
+.status-row{display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap}
+.stat{background:rgba(255,255,255,.06);border-radius:8px;padding:10px 16px;font-size:12px}
+.stat-val{font-size:20px;font-weight:800;color:var(--gold)}
+.stat-lbl{color:var(--muted);font-size:11px;margin-top:2px}
+</style>
+</head>
+<body>
+<div class="hdr">
+  <div class="hdr-logo">StorySpark ✦</div>
+  <div class="hdr-badge">ADMIN — SCENE GENERATOR</div>
+</div>
+<div class="body">
+  <div class="setup-row">
+    <div class="field"><label>Replicate API Token</label><input id="tokenInp" type="text" placeholder="r8_xxxxxxxxxxxxxxxxxxxx" autocomplete="off"></div>
+    <div class="field"><label>Admin Key</label><input id="adminKeyInp" type="password" placeholder="storyspark-admin-2026"></div>
+  </div>
+
+  <h2>Pre-render Scene Library</h2>
+  <p class="sub">Generate all Pixar-quality scenes once. These get stored on your server and reused for every customer story — no waiting per customer.</p>
+
+  <div class="theme-tabs" id="themeTabs"></div>
+
+  <div class="status-row" id="statusRow">
+    <div class="stat"><div class="stat-val" id="statDone">0</div><div class="stat-lbl">Done</div></div>
+    <div class="stat"><div class="stat-val" id="statTotal">0</div><div class="stat-lbl">Total</div></div>
+    <div class="stat"><div class="stat-val" id="statCost">$0.00</div><div class="stat-lbl">Est. cost</div></div>
+    <div class="stat"><div class="stat-val" id="statTime">0 min</div><div class="stat-lbl">Est. time left</div></div>
+  </div>
+
+  <div class="controls">
+    <button class="btn btn-gold" id="genBtn" onclick="startGen()">▶ Generate All Scenes</button>
+    <button class="btn btn-green" id="resumeBtn" onclick="resumeGen()">↺ Resume (skip done)</button>
+    <button class="btn btn-ghost" onclick="checkStatus()">⟳ Check Server Status</button>
+    <div class="progress-bar-wrap"><div class="progress-bar" id="progressBar"></div></div>
+    <div class="progress-lbl" id="progressLbl">0 / 0</div>
+  </div>
+
+  <div class="grid" id="sceneGrid"></div>
+  <div class="log" id="logEl">Ready. Select a theme and click Generate All Scenes.</div>
+</div>
+
+<script>
+'use strict';
+
+const PROXY = '/replicate';
+const MODEL_SDXL = 'bytedance/sdxl-lightning-4step:5f24084160c9089501c1b3545d9be3c27883ae2239b6f412990e82d4a6210f8f';
+
+// Same Pixar style block as customer app
+const PIXAR = 'Pixar 3D animated movie style, polished smooth surfaces, subsurface skin scattering, vibrant saturated colours, soft cinematic rim lighting, Disney-Pixar character design, expressive cartoon eyes, professional 3D render, depth of field, volumetric atmosphere';
+const PIXAR_NEG = 'realistic photograph, blurry, deformed, ugly, extra limbs, text, watermark, signature, bad anatomy, cross-eyed, low quality, noise, adult face, specific person, real child photo';
+
+// Generic placeholder child description — no specific face, just character archetype
+const CHILD_PLACEHOLDER = 'a friendly young child hero with a bright smile, round cartoon face, expressive eyes, wearing a colourful adventure outfit, full body visible, main character centre frame';
+
+// Import the same scene library from the customer app
+const SCENE_LIBRARY = {
+  dragon: [
+    { title:'The Call to Adventure',    prompt:'{PIXAR}, ancient stone doorway in a magical forest at dawn, glowing golden runes carved into the arch, rays of warm morning light breaking through ancient trees, {CHILD} standing before the doorway mouth open in wonder reaching out to touch the glowing runes, wide establishing shot, full body visible, adventurous explorer outfit, main character centre frame, children storybook illustration' },
+    { title:'Meeting the Dragon',       prompt:'{PIXAR}, emerald green valley with ancient castle ruins, small friendly purple dragon with big curious eyes sitting on mossy rocks, {CHILD} approaching with open hands and a warm smile, over-the-shoulder view, dragon in centre frame, firefly particles floating in air, lush detailed environment, full body visible, children storybook illustration' },
+    { title:'The First Flight',         prompt:'{PIXAR}, soaring high above rolling green hills and sparkling rivers far below, fluffy white clouds at eye level, {CHILD} riding on the back of a friendly purple dragon arms outstretched wide face alight with pure joy hair streaming in the wind, low angle hero shot, dramatic backlit sunset sky, full body visible, children storybook illustration' },
+    { title:'The Hidden Village',       prompt:'{PIXAR}, tiny magical village built into giant glowing mushrooms, lanterns strung between mushroom caps, cheerful woodland creatures, {CHILD} and friendly purple dragon arriving at the village entrance, wide establishing shot, soft warm lantern light against twilight blue sky, full body visible, children storybook illustration' },
+    { title:'The Challenge',            prompt:'{PIXAR}, dark stormy mountain pass, heavy clouds rolling in, ancient stone bridge over a deep chasm, path blocked by glowing thorned vines, {CHILD} standing at the bridge entrance looking determined hands on hips chin raised, dragon companion beside them, dramatic dutch angle, single shaft of light, full body visible, children storybook illustration' },
+    { title:'Problem Solving',          prompt:'{PIXAR}, sheltered cave entrance with warm firelight, ancient map spread on a flat rock, magical glowing compass, {CHILD} kneeling studying the map intently, dragon peering over their shoulder with curious eyes both pointing at the map, close medium shot, cosy warm firelight, full body visible, children storybook illustration' },
+    { title:'Making a New Friend',      prompt:'{PIXAR}, sunlit meadow with wildflowers and a gentle stream, small scared baby fox tangled in magical vines, {CHILD} carefully untangling the fox with gentle hands and a warm smile, dragon watching protectively nearby, wide medium shot, golden bokeh, heartwarming atmosphere, full body visible, children storybook illustration' },
+    { title:'The Dark Forest',          prompt:'{PIXAR}, ancient dark forest with massive twisted tree trunks, bioluminescent mushrooms, {CHILD} walking forward holding a small glowing lantern high showing bravery, dragon flying overhead casting warm protective light, low angle hero shot, bioluminescent glow, full body visible, children storybook illustration' },
+    { title:'The Crystal Cavern',       prompt:'{PIXAR}, vast underground crystal cavern, thousands of glowing crystals of every colour, ancient golden chest overflowing with magical glowing objects at the centre, {CHILD} approaching with eyes wide in amazement hands raised in delighted surprise, dragon spinning in excitement, bird eye view, crystal rainbow light, full body visible, children storybook illustration' },
+    { title:'The Storm',                prompt:'{PIXAR}, clifftop above a churning magical sea, violent storm with purple lightning, ancient lighthouse with its light gone dark, {CHILD} running toward the lighthouse through driving rain and wind hair whipping dramatically face showing fierce determination, dragon flying alongside fighting the wind, dramatic side tracking shot, full body visible, children storybook illustration' },
+    { title:'The Brave Act',            prompt:'{PIXAR}, top of ancient stone lighthouse storm raging outside, {CHILD} holding a magical crystal to the giant lighthouse lens arms outstretched, brilliant beam of golden light erupting outward into the storm, face illuminated in golden triumphant light, dramatic close shot from below and behind, light beams radiating, full body visible, children storybook illustration' },
+    { title:'The Storm Clears',         prompt:'{PIXAR}, storm clearing over a magical sea, lighthouse beam sweeping calm water, stranded magical sailing ships safely guided to harbour, {CHILD} and dragon standing together on the clifftop watching with satisfied smiles, wide from behind shot, golden light through parting clouds, rainbow in distance, full body visible, children storybook illustration' },
+    { title:'The Celebration',          prompt:'{PIXAR}, magical village square with glowing lanterns and colourful streamers, joyful woodland creatures celebrating musicians playing dancers spinning, {CHILD} lifted up on shoulders of grateful villagers laughing with pure joy, dragon doing aerial loops trailing colourful sparks, wide establishing shot, confetti and sparkles, full body visible, children storybook illustration' },
+    { title:'The Gift',                 prompt:'{PIXAR}, cosy village elder cottage with fireplace, {CHILD} kneeling to receive a glowing pendant on a chain from a wise old owl elder wearing robes, both smiling warmly, medium close shot on gift exchange, warm firelight, intimate emotional moment, full body visible, children storybook illustration' },
+    { title:'Saying Goodbye',           prompt:'{PIXAR}, edge of enchanted forest at sunrise, all village friends gathered to say farewell with warm smiles and waving paws, {CHILD} sharing a tender farewell hug with the friendly purple dragon both eyes closed, glowing pendant visible, medium close side shot, soft golden sunrise, full body visible, children storybook illustration' },
+    { title:'The Return Journey',       prompt:'{PIXAR}, peaceful forest path home, afternoon sunlight filtering through autumn-coloured leaves, {CHILD} walking with a gentle thoughtful smile glowing pendant catching the light, small forest creatures watching from branches, wide from above, dappled warm light, full body visible, children storybook illustration' },
+    { title:'Home Again',               prompt:'{PIXAR}, cosy family kitchen with warm golden light, {CHILD} bursting through the back door full of excitement windswept and glowing holding up the glowing pendant, wide medium through door frame, warm indoor light contrasting blue dusk outside, full body visible, children storybook illustration' },
+    { title:'Telling the Story',        prompt:'{PIXAR}, cosy living room bedtime warm fireplace, {CHILD} animated gesturing wildly telling adventure story glowing pendant around neck, magical hologram illustrations appearing in air showing the dragon and lighthouse, close medium shot, warm firelight and blue hologram glow, full body visible, children storybook illustration' },
+    { title:'Bedtime Dreams',           prompt:'{PIXAR}, magical bedroom with moonlight streaming through window, {CHILD} tucked in bed with eyes drooping in happy tiredness, glowing pendant on bedside table, tiny miniature dragon asleep on pillow, dream imagery drifting above in soft clouds, overhead shot from above, peaceful and magical, full body visible, children storybook illustration' },
+    { title:'A World Saved',            prompt:'{PIXAR}, enchanted world seen from high above at dawn, golden sunrise breaking over mountains, magical mushroom village lit by morning light, lighthouse beam sweeping calm sea, tiny {CHILD} and dragon on distant hilltop looking out at the beautiful land they saved, epic aerial shot, golden sunrise flooding the landscape, full body visible, children storybook illustration' },
+  ],
+  space: [
+    { title:'Ready for Launch',         prompt:'{PIXAR}, gleaming rocket launch pad at night stars filling the sky, {CHILD} in colourful space suit with helmet under arm standing proudly at base of magnificent silver rocket, wide establishing shot, dramatic floodlights, full body visible, sense of epic adventure beginning, children storybook illustration' },
+    { title:'Blastoff!',                prompt:'{PIXAR}, rocket blasting off from launchpad massive column of fire and smoke, {CHILD} inside the capsule visible through round porthole face alight with pure joy fist pump, low angle exterior shot of rocket ascending, golden fire light from engines, stars and sky above, full body visible, children storybook illustration' },
+    { title:'Zero Gravity',             prompt:'{PIXAR}, inside cosy spacecraft cabin Earth visible through large portholes below, {CHILD} floating in zero gravity hair floating upward laughing with delight reaching out to touch floating water droplets, medium shot, soft warm cabin light contrasting deep space and glowing Earth, full body visible, children storybook illustration' },
+    { title:'First Planet',             prompt:'{PIXAR}, surface of magical alien planet with purple grass and orange sky, two distant suns casting warm light, crystal formations rising from ground, exotic glowing plants, {CHILD} in space suit stepping out of rocket ramp jaw dropped in amazement, wide establishing shot, alien landscape, full body visible, children storybook illustration' },
+    { title:'Meeting Aliens',           prompt:'{PIXAR}, alien village of glowing dome homes, friendly small blue aliens with big eyes wide smiles approaching {CHILD} with gifts of glowing crystals, {CHILD} kneeling to their level with huge welcoming smile, medium close shot, soft bioluminescent light, warm welcoming atmosphere, full body visible, children storybook illustration' },
+    { title:'Space Map Mystery',        prompt:'{PIXAR}, spaceship command deck glowing holographic star map filling air with blue light, {CHILD} studying map intently pointing at distant star, friendly alien co-pilot beside them, close over-shoulder shot, holographic blue glow illuminating faces, sense of discovery, full body visible, children storybook illustration' },
+    { title:'Asteroid Field',           prompt:'{PIXAR}, navigating through spectacular asteroid field massive ancient rocks spinning in all directions, rays of distant sunlight catching rock edges, {CHILD} at spaceship controls with focused determined expression banks of colourful buttons and screens, dynamic side shot through cockpit window, dramatic shadows, full body visible, children storybook illustration' },
+    { title:'Lost Signal',              prompt:'{PIXAR}, spaceship interior with emergency red lights flickering crackling communications screen, {CHILD} working at control panel face set with determination alien friend beside them both solving the problem, dramatic dutch angle, emergency red and yellow light, determined not scared, full body visible, children storybook illustration' },
+    { title:'Space Walk',               prompt:'{PIXAR}, open space outside spacecraft infinite stars in all directions curve of beautiful blue-green alien planet below, {CHILD} doing spacewalk tethered to ship arms out wide in void face showing pure awe and wonder, wide dramatic shot tiny hero against vast cosmos, Earth glow illuminating suit, full body visible, children storybook illustration' },
+    { title:'The Rescue',               prompt:'{PIXAR}, stranded alien spacecraft drifting in space lights flickering, {CHILD} in small scout pod expertly docking with stranded ship spotlight from scout pod illuminating rescue, action wide shot showing both spacecraft, dramatic lighting, triumphant atmosphere, full body visible, children storybook illustration' },
+    { title:'New Discoveries',          prompt:'{PIXAR}, enormous underground crystal cavern on alien moon glowing mineral formations of every colour, {CHILD} exploring with hovering drone light examining glowing alien fossils in crystal walls, wide establishing shot vast colourful cavern, magical otherworldly light, full body visible, children storybook illustration' },
+    { title:'Galactic Council',         prompt:'{PIXAR}, vast circular hall of Galactic Council hundreds of alien species seated in curved tiers, {CHILD} standing at centre podium in spotlight small against enormous space but standing tall, low angle hero shot, ceremonial golden light beam on hero, awe-inspiring scale, full body visible, children storybook illustration' },
+    { title:'Heroes Medal',             prompt:'{PIXAR}, ceremonial galactic platform {CHILD} receiving beautiful glowing star-shaped medal from tall regal alien elder both smiling warmly, all alien friends from adventure gathered cheering behind, medium close shot on medal ceremony, warm golden ceremonial light, celebration and pride, full body visible, children storybook illustration' },
+    { title:'Homeward Bound',           prompt:'{PIXAR}, inside spacecraft heading home through main porthole Earth growing larger and more beautiful oceans and clouds visible, {CHILD} in pilot seat gazing at home with warm nostalgic smile, alien companion waving goodbye on comms screen, wide cockpit shot, beautiful blue Earth light, glowing medal on chest, full body visible, children storybook illustration' },
+    { title:'Re-entry',                 prompt:'{PIXAR}, spacecraft re-entering atmosphere brilliant orange and red glow of friction heat surrounding craft streaks of fire, {CHILD} visible through porthole gripping seat with fierce grin planet surface visible below through clouds, dramatic exterior shot, fiery descent, full body visible, children storybook illustration' },
+    { title:'Landing!',                 prompt:'{PIXAR}, rocket landing with retrorockets firing kicking up dramatic cloud of dust and light, {CHILD} walking down rocket ramp arms raised in triumphant V, brilliant morning sunshine, low angle wide shot looking up at hero descending into golden light, dust swirling, full body visible, children storybook illustration' },
+    { title:'Welcome Home',             prompt:'{PIXAR}, familiar neighbourhood street on sunny afternoon, {CHILD} in space suit helmet under arm arriving home glowing medal around neck, front door of home open with warm light inside, wide medium shot, warm golden afternoon light, neighbours peering out windows in amazement, full body visible, children storybook illustration' },
+    { title:'Show and Tell',            prompt:'{PIXAR}, cosy living room {CHILD} animated glowing with excitement showing alien medal using special device to project 3D holograms of alien planet asteroid field crystal cavern floating in air, close medium shot, warm home light and blue hologram glow, full body visible, children storybook illustration' },
+    { title:'Stargazing',               prompt:'{PIXAR}, garden at night blanket on grass {CHILD} lying back looking up at stars with huge content smile glowing medal on chest pointing at constellation that looks like the rocket, wide from below shot showing hero against vast starry sky, soft moonlight and star glow, full body visible, children storybook illustration' },
+    { title:'Next Adventure',           prompt:'{PIXAR}, hilltop at dawn overlooking vast beautiful landscape {CHILD} standing tall looking at horizon with sunrise space helmet under arm glowing medal around neck, tiny rocket visible ascending into dawn sky above, epic wide establishing shot, golden sunrise gradient, sense of infinite possibility, full body visible, children storybook illustration' },
+  ],
+  dinosaurs: [
+    { title:'The Time Portal',          prompt:'{PIXAR}, ancient stone circle with swirling blue-white time portal glowing between standing stones, prehistoric jungle visible through portal with misty mountains beyond, {CHILD} standing before the portal wide-eyed backpack on, dramatic electric portal light, full body visible, children storybook illustration' },
+    { title:'Prehistoric Jungle',       prompt:'{PIXAR}, arriving in prehistoric jungle impossibly tall ancient trees ferns and tropical plants, shafts of golden light filtering through canopy, {CHILD} standing in awe at jungle entrance jaw dropped, butterfly the size of a dinner plate landing on outstretched hand, low wide angle looking up, full body visible, children storybook illustration' },
+    { title:'First Dinosaur',           prompt:'{PIXAR}, prehistoric jungle clearing {CHILD} slowly parting giant ferns with cautious excited expression, through parted leaves the friendly face of small baby triceratops with enormous curious eyes looking directly back, medium close shot magical face-to-face moment, warm dappled jungle light, full body visible, children storybook illustration' },
+    { title:'Baby Dino Friend',         prompt:'{PIXAR}, sunny jungle clearing with bubbling stream, {CHILD} and small friendly baby triceratops splashing and playing in shallow water together {CHILD} laughing as dino sprays water with its horn, wide medium shot, warm golden light, joy and friendship, full body visible, children storybook illustration' },
+    { title:'The Dino Herd',            prompt:'{PIXAR}, vast prehistoric plain stretching to purple mountains, enormous herd of magnificent long-neck brachiosaurus moving slowly across landscape, {CHILD} and baby triceratops standing in foreground completely dwarfed by giants, wide epic shot from ground, dramatic golden afternoon light, dust in air, full body visible, children storybook illustration' },
+    { title:'Dino Riding',              prompt:'{PIXAR}, open prehistoric plains {CHILD} riding joyfully on back of friendly young triceratops arms outstretched face showing pure exhilaration moving at speed through prehistoric grasslands with distant volcanoes, low action side shot, bright energetic daylight, full body visible, children storybook illustration' },
+    { title:'Danger!',                  prompt:'{PIXAR}, prehistoric jungle path blocked shadow of large T-Rex falling across path, {CHILD} and triceratops friend standing their ground {CHILD} stepping in front protectively arms spread wide in brave stance, dutch angle dramatic tension, strong shadow and light contrast, determined face, full body visible, children storybook illustration' },
+    { title:'Clever Escape',            prompt:'{PIXAR}, prehistoric jungle in action {CHILD} and triceratops weaving cleverly between enormous ancient trees too narrow for large predator, {CHILD} looking back with triumphant grin guiding dino with one hand, action wide shot, dappled moving light through trees, full body visible, children storybook illustration' },
+    { title:'The Volcano Warning',      prompt:'{PIXAR}, prehistoric landscape massive volcano beginning to glow orange and rumble in distance ash drifting down like snow, {CHILD} looking at volcano then back at dino valley full of unaware dinosaurs face showing urgency and determination, wide dramatic shot, orange volcanic glow, full body visible, children storybook illustration' },
+    { title:'Warning the Herd',         prompt:'{PIXAR}, {CHILD} riding triceratops at full speed through prehistoric valley shouting and waving arms to warn dinosaur herds to move, dinosaurs beginning to turn and move away from volcano, wide action shot from side, orange volcanic sky getting darker, urgency and bravery, full body visible, children storybook illustration' },
+    { title:'The Eruption',             prompt:'{PIXAR}, massive volcanic eruption filling sky with fire and ash lava flows in distance, {CHILD} and triceratops on safe hilltop watching from distance all dino herds safely moving away below, epic wide dramatic shot showing full scale of eruption, firelight illuminating heroes in silhouette, full body visible, children storybook illustration' },
+    { title:'Thank You',                prompt:'{PIXAR}, prehistoric plain at golden sunset volcano quiet in distance, all dinosaurs from valley gathered around {CHILD} in circle some nuzzling some trumpeting happily baby triceratops pressed close to side, wide establishing shot, golden sunset light, safe and peaceful, full body visible, children storybook illustration' },
+    { title:'Fossil Discovery',         prompt:'{PIXAR}, shallow riverbed in prehistoric jungle, {CHILD} kneeling by water carefully uncovering beautiful fossilised shell pattern in flat rock, triceratops friend peering curiously, close medium shot, warm afternoon light making fossil patterns glow, sense of scientific discovery, full body visible, children storybook illustration' },
+    { title:'Ancient Cave Paintings',   prompt:'{PIXAR}, inside vast prehistoric cave with ancient cave paintings covering every wall painted hands and dinosaur images, {CHILD} holding up torch to illuminate paintings face showing wonder triceratops standing behind looking at walls, medium wide shot, warm firelight and shadow, ancient atmosphere, full body visible, children storybook illustration' },
+    { title:'The Goodbye',              prompt:'{PIXAR}, edge of prehistoric jungle at sunset, {CHILD} sharing final gentle forehead-to-forehead moment with baby triceratops both eyes closed in tender farewell, other dinosaurs watching quietly from treeline, medium close side shot, warm golden sunset light, deeply emotional, full body visible, children storybook illustration' },
+    { title:'Back Through Portal',      prompt:'{PIXAR}, standing at edge of time portal again prehistoric jungle behind, {CHILD} looking back one last time at triceratops watching from jungle edge hand raised in final wave triceratops lifting horn in farewell, medium dramatic shot, portal blue-white light from front, full body visible, children storybook illustration' },
+    { title:'Home with a Fossil',       prompt:'{PIXAR}, {CHILD} back home at desk under warm lamp carefully cleaning small fossil found in prehistoric riverbed examining it with magnifying glass, hand-drawn map of dinosaur valley on desk beside it, medium close shot, warm lamp light, nostalgic and warm, full body visible, children storybook illustration' },
+    { title:'Sharing the Discovery',    prompt:'{PIXAR}, bright warm classroom {CHILD} at front holding up fossil for classmates pointing to hand-drawn map of prehistoric world on board behind them glowing with pride and excitement, medium shot, warm classroom light, joyful sharing atmosphere, full body visible, children storybook illustration' },
+    { title:'Dinosaur Dreams',          prompt:'{PIXAR}, childs bedroom at night moonlight through curtains, {CHILD} asleep in bed with peaceful smile fossil on bedside table, dream images drifting above in soft blue clouds showing triceratops and prehistoric world, overhead soft shot, moonlight and blue dream glow, full body visible, children storybook illustration' },
+    { title:'A World Remembered',       prompt:'{PIXAR}, high above prehistoric world as portal closes, full breathtaking landscape visible enormous herds of dinosaurs great volcano quiet rivers and jungles stretching forever, tiny {CHILD} and triceratops on distant hilltop as farewell memory, epic aerial shot, golden morning light, full body visible, children storybook illustration' },
+  ],
+  ocean: [
+    { title:'The Discovery',            prompt:'{PIXAR}, golden beach with clear turquoise water, magical glowing conch shell half buried in sand, {CHILD} kneeling down to pick it up shell glowing softly showing an underwater image, wide establishing beach shot, warm afternoon golden light, sea breeze visible in hair, full body visible, children storybook illustration' },
+    { title:'The Dive',                 prompt:'{PIXAR}, just beneath the surface brilliant underwater sunlight breaking into caustic patterns sandy seabed visible below, {CHILD} diving down gracefully in magical bubble of air surrounded by curious small fish, underwater wide shot from side, brilliant blue-green light, full body visible, children storybook illustration' },
+    { title:'Coral Kingdom',            prompt:'{PIXAR}, magnificent coral reef city rising from seabed every colour imaginable tropical fish darting everywhere sea anemones waving, {CHILD} floating in amazement looking up at coral towers above, low wide angle looking up, shafts of blue-green light from surface, full body visible, children storybook illustration' },
+    { title:'Meeting the Merfolk',      prompt:'{PIXAR}, underwater city of pearl and coral, friendly merfolk with glowing tails swimming to greet {CHILD}, {CHILD} waving in delight young mermaid taking their hand to guide them, medium close shot on first greeting, warm bioluminescent light, magical sparkles, full body visible, children storybook illustration' },
+    { title:'The Sunken Palace',        prompt:'{PIXAR}, enormous ancient sunken palace covered in coral and anemones glowing softly from within schools of fish swimming through windows like living curtains, {CHILD} approaching through water with awe, wide dramatic establishing shot, filtered golden light from above, full body visible, children storybook illustration' },
+    { title:'Sea Turtle Ride',          prompt:'{PIXAR}, deep calm ocean ancient magnificent sea turtle swimming gracefully through open blue water, {CHILD} riding gently on its shell holding edge carefully both moving slowly, small fish accompanying them, wide graceful side shot, deep peaceful blue light, full body visible, children storybook illustration' },
+    { title:'The Lost Map',             prompt:'{PIXAR}, inside cosy underwater coral cave ancient waterproof map unrolled on rock glowing softly to reveal hidden paths, {CHILD} and young mermaid friend studying it together pointing at locations, close medium shot, warm bioluminescent light from map and cave crystals, full body visible, children storybook illustration' },
+    { title:'Dark Waters',              prompt:'{PIXAR}, deeper darker waters mysterious shadows in distance, {CHILD} swimming forward through darkness holding glowing pearl lantern mermaid friend beside them face showing courage, dramatic hero angle, single light beam from pearl lantern cutting through dark water, full body visible, children storybook illustration' },
+    { title:'The Sea Creature',         prompt:'{PIXAR}, enormous but gentle glowing whale-like sea creature slowly surfacing, {CHILD} floating completely still in amazement as enormous eye of creature comes level with them and gazes warmly, wide dramatic shot showing massive scale difference, soft bioluminescent light, full body visible, children storybook illustration' },
+    { title:'Saving the Reef',          prompt:'{PIXAR}, section of coral reef tangled in old fishing nets sea creatures trapped, {CHILD} and mermaid friend working together urgently to cut nets with magical shell blade freeing trapped fish and turtle, action wide shot, warm coral glow, urgent determined atmosphere, full body visible, children storybook illustration' },
+    { title:'The Treasure',             prompt:'{PIXAR}, hidden underwater cave ancient chests and magical artefacts glowing softly covering every surface, {CHILD} and mermaid finding lost crown of ocean queen holding it up triumphantly, wide underwater cave shot, magnificent golden treasure glow everywhere, full body visible, children storybook illustration' },
+    { title:'The Ocean Queen',          prompt:'{PIXAR}, grand throne room of ocean palace majestic Ocean Queen on coral throne surrounded by merfolk and sea creatures, {CHILD} approaching with recovered crown, low reverent angle looking up at Queen, regal blue-green ceremonial light, awe and pride, full body visible, children storybook illustration' },
+    { title:'Celebration Feast',        prompt:'{PIXAR}, great hall of ocean palace decorated with bioluminescent flowers and floating lanterns enormous celebration feast merfolk and sea creatures gathered, {CHILD} at head of table laughing and celebrating, wide establishing feast shot, warm magical light, joy everywhere, full body visible, children storybook illustration' },
+    { title:'The Pearl Gift',           prompt:'{PIXAR}, quiet moment in pearl garden, young mermaid placing beautiful glowing pearl bracelet on {CHILD} wrist both smiling warmly at each other, medium close shot on gift, warm soft light, intimate friendship moment, full body visible, children storybook illustration' },
+    { title:'Ocean Farewell',           prompt:'{PIXAR}, surface of ocean at golden sunset, {CHILD} floating in magical air bubble at surface young mermaid holding their hand from below water both looking at each other through surface, glowing pearl bracelet visible, wide surface shot, warm golden sunset, full body visible, children storybook illustration' },
+    { title:'Back on the Beach',        prompt:'{PIXAR}, golden beach from the beginning, {CHILD} sitting on sand watching sunset over ocean glowing pearl bracelet catching light feet in gentle waves looking out to sea with content warm smile, medium wide beach shot, last beautiful golden rays, full body visible, children storybook illustration' },
+    { title:'The Shell Glows',          prompt:'{PIXAR}, childs bedroom at night, {CHILD} holding magical conch shell which glows softly showing tiny living image of underwater world inside face illuminated in wonder pearl bracelet on wrist, close medium shot, dark bedroom with shell glow only light source, full body visible, children storybook illustration' },
+    { title:'Drawing the World',        prompt:'{PIXAR}, bedroom desk covered in drawings and paintings of ocean kingdom, {CHILD} carefully drawing coral palace from memory pearl bracelet on wrist wide happy smile collection of ocean sketches around them, close over-shoulder shot, warm desk lamp light, creative and joyful, full body visible, children storybook illustration' },
+    { title:'Ocean Dreams',             prompt:'{PIXAR}, childs bedroom at night {CHILD} sleeping peacefully pearl bracelet glowing softly on wrist, dream images of mermaid friend and coral palace drifting above in blue clouds conch shell on bedside table, overhead peaceful shot, moonlight and soft pearl glow, full body visible, children storybook illustration' },
+    { title:'The Ocean Calls',          prompt:'{PIXAR}, aerial view of magnificent coastline at dawn golden light on ocean surface beneath water faint outlines of coral palace and vast underwater world visible through clear water, tiny {CHILD} on beach looking out with knowing smile, epic aerial shot, dawn golden light, full body visible, children storybook illustration' },
+  ],
+};
+
+const THEMES = Object.keys(SCENE_LIBRARY);
+let currentTheme = THEMES[0];
+let isRunning = false;
+let sceneStatus = {}; // {theme_index: 'done'|'error'|'pending'}
+
+// ── INIT ──
+(function(){
+  const tabs = document.getElementById('themeTabs');
+  THEMES.forEach(t => {
+    const btn = document.createElement('button');
+    btn.className = 'tab' + (t === currentTheme ? ' on' : '');
+    btn.textContent = `${t === 'dragon' ? '🐉' : t === 'space' ? '🚀' : t === 'dinosaurs' ? '🦕' : '🌊'} ${t.charAt(0).toUpperCase() + t.slice(1)}`;
+    btn.onclick = () => {
+      document.querySelectorAll('.tab').forEach(x => x.classList.remove('on'));
+      btn.classList.add('on');
+      currentTheme = t;
+      renderGrid();
+    };
+    tabs.appendChild(btn);
+  });
+  renderGrid();
+  checkStatus();
+})();
+
+function renderGrid(){
+  const scenes = SCENE_LIBRARY[currentTheme];
+  const grid = document.getElementById('sceneGrid');
+  grid.innerHTML = '';
+  let done = 0;
+  scenes.forEach((s, i) => {
+    const key = `${currentTheme}_${i}`;
+    const status = sceneStatus[key];
+    if(status === 'done') done++;
+    const card = document.createElement('div');
+    card.className = 'scene-card';
+    card.id = `card_${i}`;
+    card.innerHTML = `
+      <div class="scene-ph ${status === 'pending' ? 'loading' : ''}" id="ph_${i}">${status === 'done' ? '✅' : status === 'error' ? '❌' : '🎨'}</div>
+      <div class="scene-info">
+        <div class="scene-num">Scene ${i+1}</div>
+        <div class="scene-title">${s.title}</div>
+      </div>
+      ${status === 'done' ? '<div class="scene-badge badge-done">✓</div>' : status === 'error' ? '<div class="scene-badge badge-error">!</div>' : ''}
+    `;
+    grid.appendChild(card);
+  });
+  updateStats();
+}
+
+function updateStats(){
+  const scenes = SCENE_LIBRARY[currentTheme];
+  const total = scenes.length;
+  let done = 0;
+  for(let i=0;i<total;i++){ if(sceneStatus[`${currentTheme}_${i}`] === 'done') done++; }
+  document.getElementById('statDone').textContent = done;
+  document.getElementById('statTotal').textContent = total;
+  document.getElementById('statCost').textContent = `$${(total * 0.004).toFixed(2)}`; // SDXL ~$0.004/image
+  const remaining = total - done;
+  document.getElementById('statTime').textContent = `~${Math.ceil(remaining * 0.5)} min`;
+  document.getElementById('progressBar').style.width = total > 0 ? (done/total*100)+'%' : '0%';
+  document.getElementById('progressLbl').textContent = `${done} / ${total}`;
+}
+
+async function checkStatus(){
+  try{
+    const r = await fetch('/scenes/status');
+    const data = await r.json();
+    log(`Server scenes: ${JSON.stringify(data.scenes)}`);
+    // Update local status based on server
+    for(const [theme, count] of Object.entries(data.scenes)){
+      for(let i=0;i<count;i++){
+        sceneStatus[`${theme}_${i}`] = 'done';
+      }
+    }
+    renderGrid();
+  }catch(e){ log('Status check failed: '+e.message) }
+}
+
+async function startGen(skipDone = false){
+  const token = document.getElementById('tokenInp').value.trim();
+  const adminKey = document.getElementById('adminKeyInp').value.trim() || 'storyspark-admin-2026';
+  if(!token || !token.startsWith('r8_')){ alert('Enter your Replicate token first'); return; }
+  if(isRunning){ log('Already running'); return; }
+  isRunning = true;
+  document.getElementById('genBtn').disabled = true;
+  document.getElementById('resumeBtn').disabled = true;
+  const scenes = SCENE_LIBRARY[currentTheme];
+  log(`Starting generation: ${scenes.length} scenes for theme "${currentTheme}"${skipDone ? ' (skipping done)' : ''}`);
+  for(let i=0;i<scenes.length;i++){
+    const key = `${currentTheme}_${i}`;
+    if(skipDone && sceneStatus[key] === 'done'){
+      log(`Scene ${i+1}: already done, skipping`);
+      continue;
+    }
+    setCardStatus(i, 'pending');
+    log(`Scene ${i+1}/${scenes.length}: ${scenes[i].title}…`);
+    try{
+      const img = await generateScene(scenes[i].prompt, token);
+      await saveScene(currentTheme, i, img, adminKey);
+      sceneStatus[key] = 'done';
+      setCardImg(i, img);
+      log(`✅ Scene ${i+1} done`);
+    }catch(e){
+      sceneStatus[key] = 'error';
+      setCardStatus(i, 'error');
+      log(`❌ Scene ${i+1} failed: ${e.message.substring(0,80)}`);
+    }
+    updateStats();
+    // Pause between scenes
+    if(i < scenes.length-1) await sleep(5000);
+  }
+  log('🎉 Generation complete!');
+  isRunning = false;
+  document.getElementById('genBtn').disabled = false;
+  document.getElementById('resumeBtn').disabled = false;
+}
+
+function resumeGen(){ startGen(true); }
+
+async function generateScene(promptTemplate, token){
+  // Build final prompt — replace {CHILD} with generic placeholder, {PIXAR} with style block
+  const finalPrompt = promptTemplate
+    .replace(/\{PIXAR\}/g, PIXAR)
+    .replace(/\{CHILD\}/g, CHILD_PLACEHOLDER);
+
+  // Create prediction
+  const resp = await fetch(`${PROXY}/v1/predictions`, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      version: MODEL_SDXL.split(':')[1],
+      input: {
+        prompt: finalPrompt,
+        negative_prompt: PIXAR_NEG,
+        width: 896,
+        height: 1152,
+        num_inference_steps: 4,
+        guidance_scale: 0,
+        scheduler: 'K_EULER',
+        num_outputs: 1,
+      }
+    })
+  });
+  if(!resp.ok) throw new Error(`Replicate ${resp.status}: ${await resp.text()}`);
+  const pred = await resp.json();
+  if(!pred.id) throw new Error('No prediction ID');
+
+  // Poll
+  for(let i=0;i<60;i++){
+    await sleep(3000);
+    const poll = await fetch(`${PROXY}/v1/predictions/${pred.id}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const result = await poll.json();
+    if(result.status === 'succeeded'){
+      const outUrl = Array.isArray(result.output) ? result.output[0] : result.output;
+      if(!outUrl) throw new Error('Empty output');
+      // Fetch as base64
+      const ir = await fetch('/fetch-image', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({url: outUrl}) });
+      return (await ir.json()).dataUrl;
+    }
+    if(result.status === 'failed' || result.status === 'canceled')
+      throw new Error(`Prediction ${result.status}: ${result.error || 'unknown'}`);
+  }
+  throw new Error('Timed out');
+}
+
+async function saveScene(theme, index, dataUrl, adminKey){
+  const resp = await fetch('/scenes/save', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ theme, index, dataUrl, adminKey })
+  });
+  if(!resp.ok) throw new Error(`Save failed: ${resp.status} ${await resp.text()}`);
+}
+
+function setCardStatus(i, status){
+  const ph = document.getElementById(`ph_${i}`);
+  if(ph){ ph.textContent = status === 'pending' ? '⏳' : status === 'error' ? '❌' : '🎨'; ph.className = `scene-ph${status === 'pending' ? ' loading' : ''}`; }
+}
+function setCardImg(i, src){
+  const ph = document.getElementById(`ph_${i}`);
+  if(ph){ const img = document.createElement('img'); img.src = src; ph.replaceWith(img); }
+  const card = document.getElementById(`card_${i}`);
+  if(card){ const existing = card.querySelector('.scene-badge'); if(existing) existing.remove(); const badge = document.createElement('div'); badge.className = 'scene-badge badge-done'; badge.textContent = '✓'; card.appendChild(badge); }
+}
+function log(msg){ const el = document.getElementById('logEl'); el.textContent += '\n' + msg; el.scrollTop = el.scrollHeight; }
+function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+</script>
+</body>
+</html>
