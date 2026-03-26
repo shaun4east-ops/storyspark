@@ -1,0 +1,1840 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StorySpark — AI Storybooks</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,400;0,600;0,700;0,800;0,900;1,700&family=Nunito+Sans:wght@400;600;700&family=Lora:ital,wght@1,500;1,600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+/* ── TOKENS ──────────────────────────────── */
+:root {
+  --ink:    #12133A;
+  --ink2:   #2E3166;
+  --muted:  #6B6F9A;
+  --light:  #E8EAF6;
+  --bg:     #F4F5FB;
+  --white:  #FFFFFF;
+  --blue:   #3D52D5;
+  --blue2:  #5468E7;
+  --sky:    #60A5FA;
+  --gold:   #F59E0B;
+  --coral:  #EF4444;
+  --green:  #10B981;
+  --purple: #8B5CF6;
+  --border: #DDE0F5;
+  --r1: 10px; --r2: 16px; --r3: 24px; --r4: 36px; --pill: 999px;
+  --sh1: 0 2px 8px rgba(18,19,58,.08);
+  --sh2: 0 8px 32px rgba(18,19,58,.12);
+  --sh3: 0 20px 60px rgba(18,19,58,.18);
+  --f1: 'Nunito', sans-serif;
+  --f2: 'Nunito Sans', sans-serif;
+  --f3: 'Lora', serif;
+}
+*,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+html { scroll-behavior:smooth; }
+body { font-family:var(--f2); background:var(--bg); color:var(--ink); min-height:100vh; overflow-x:hidden; }
+button { cursor:pointer; font-family:var(--f1); }
+input,textarea,select { font-family:var(--f2); }
+img { display:block; max-width:100%; }
+
+/* ── SCREEN SYSTEM ───────────────────────── */
+[data-screen] { display:none; }
+[data-screen].on { display:block; }
+[data-screen].flex { display:none; }
+[data-screen].flex.on { display:flex; }
+
+/* ── NAVBAR ──────────────────────────────── */
+.nav {
+  position:fixed; top:0; left:0; right:0; z-index:800;
+  height:58px; display:flex; align-items:center; justify-content:space-between;
+  padding:0 20px;
+  background:rgba(255,255,255,.92); backdrop-filter:blur(12px);
+  border-bottom:1.5px solid var(--border);
+  box-shadow:var(--sh1);
+}
+.nav-logo {
+  font-family:var(--f1); font-size:21px; font-weight:900; color:var(--ink);
+  cursor:pointer; display:flex; align-items:center; gap:6px; text-decoration:none;
+  letter-spacing:-.3px;
+}
+.logo-spark { color:var(--gold); }
+.nav-actions { display:flex; align-items:center; gap:8px; }
+.nav-pill {
+  padding:7px 16px; border-radius:var(--pill);
+  font-size:13px; font-weight:700; border:1.5px solid var(--border);
+  background:var(--white); color:var(--muted); transition:all .18s;
+}
+.nav-pill:hover { border-color:var(--ink2); color:var(--ink); }
+.nav-cta {
+  padding:8px 20px; border-radius:var(--pill);
+  font-size:13px; font-weight:800;
+  background:var(--blue); color:#fff; border:none;
+  box-shadow:0 4px 14px rgba(61,82,213,.3); transition:all .18s;
+}
+.nav-cta:hover { background:var(--ink2); transform:translateY(-1px); }
+
+/* ── CONNECT SCREEN ──────────────────────── */
+#connect {
+  min-height:100vh; padding-top:58px;
+  flex-direction:column; align-items:center; justify-content:center;
+  padding-left:20px; padding-right:20px;
+  background:linear-gradient(135deg,#EEF0FF 0%,#F4F0FF 50%,#FFF4EE 100%);
+}
+.connect-card {
+  background:var(--white); border-radius:var(--r4);
+  padding:40px 32px; max-width:460px; width:100%;
+  box-shadow:var(--sh3); border:1.5px solid var(--border);
+}
+.connect-icon { font-size:52px; text-align:center; margin-bottom:16px; }
+.connect-h { font-family:var(--f1); font-size:26px; font-weight:900; color:var(--ink); text-align:center; margin-bottom:6px; }
+.connect-sub { font-size:14px; color:var(--muted); font-weight:600; text-align:center; line-height:1.6; margin-bottom:24px; }
+.connect-steps {
+  background:var(--bg); border-radius:var(--r2); padding:16px;
+  border:1.5px solid var(--border); margin-bottom:20px;
+}
+.connect-step { display:flex; gap:12px; align-items:flex-start; margin-bottom:10px; font-size:13px; font-weight:600; color:var(--ink); line-height:1.5; }
+.connect-step:last-child { margin-bottom:0; }
+.cs-num { width:22px; height:22px; border-radius:50%; background:var(--blue); color:#fff; font-size:11px; font-weight:900; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:1px; }
+.connect-label { font-size:12px; font-weight:800; color:var(--ink); margin-bottom:6px; }
+.connect-input {
+  width:100%; padding:13px 16px; border:1.5px solid var(--border);
+  border-radius:var(--r2); font-size:13px; font-family:monospace;
+  color:var(--ink); background:var(--white); outline:none;
+  transition:border-color .18s; letter-spacing:.04em; margin-bottom:6px;
+}
+.connect-input:focus { border-color:var(--blue); box-shadow:0 0 0 3px rgba(61,82,213,.12); }
+.connect-hint { font-size:11px; color:var(--muted); font-weight:600; margin-bottom:18px; }
+.connect-btn {
+  width:100%; padding:15px; border-radius:var(--pill);
+  font-size:16px; font-weight:900; border:none;
+  background:var(--blue); color:#fff;
+  box-shadow:0 6px 20px rgba(61,82,213,.35); transition:all .2s;
+  margin-bottom:8px;
+}
+.connect-btn:hover { background:var(--ink2); transform:translateY(-2px); }
+.connect-btn:disabled { opacity:.6; transform:none; cursor:wait; }
+.connect-skip {
+  width:100%; padding:12px; border-radius:var(--pill);
+  font-size:13px; font-weight:700; background:transparent;
+  color:var(--muted); border:1.5px solid var(--border); transition:all .18s;
+}
+.connect-skip:hover { border-color:var(--muted); color:var(--ink); }
+.connect-result {
+  font-size:13px; font-weight:700; text-align:center;
+  min-height:20px; margin:8px 0; line-height:1.5; white-space:pre-line;
+}
+
+/* ── LANDING ─────────────────────────────── */
+#landing { padding-top:58px; }
+.hero {
+  min-height:calc(100vh - 58px);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  text-align:center; padding:48px 24px 40px;
+  background:linear-gradient(160deg,#EEF0FF 0%,#F4F0FF 40%,#FFF4EE 100%);
+  position:relative; overflow:hidden;
+}
+.hero::before {
+  content:''; position:absolute; inset:0; pointer-events:none;
+  background:radial-gradient(ellipse at 20% 60%,rgba(96,165,250,.15),transparent 55%),
+             radial-gradient(ellipse at 80% 30%,rgba(245,158,11,.18),transparent 50%);
+}
+.hero-inner { position:relative; z-index:1; max-width:560px; }
+.hero-badge {
+  display:inline-flex; align-items:center; gap:7px;
+  background:rgba(255,255,255,.85); backdrop-filter:blur(8px);
+  border:1.5px solid var(--border); border-radius:var(--pill);
+  padding:7px 18px; font-size:12px; font-weight:800; color:var(--blue);
+  letter-spacing:.08em; text-transform:uppercase; margin-bottom:24px;
+}
+.hero-h {
+  font-family:var(--f1); font-size:clamp(40px,9vw,68px); font-weight:900;
+  color:var(--ink); line-height:1.05; margin-bottom:18px;
+}
+.hero-h em { font-style:italic; color:var(--blue); }
+.hero-sub { font-size:17px; color:var(--muted); font-weight:600; line-height:1.7; margin-bottom:36px; }
+.hero-cta {
+  display:inline-flex; align-items:center; gap:10px;
+  padding:18px 44px; border-radius:var(--pill);
+  font-family:var(--f1); font-size:19px; font-weight:900;
+  background:var(--blue); color:#fff; border:none;
+  box-shadow:0 8px 28px rgba(61,82,213,.4); transition:all .25s;
+}
+.hero-cta:hover { background:var(--ink2); transform:translateY(-3px) scale(1.02); }
+.hero-sample-books {
+  display:flex; gap:14px; justify-content:center; margin-top:44px;
+  overflow-x:auto; padding-bottom:8px; scrollbar-width:none;
+}
+.hero-sample-books::-webkit-scrollbar { display:none; }
+.sample-book {
+  flex-shrink:0; width:130px; background:var(--white);
+  border-radius:var(--r3); overflow:hidden; box-shadow:var(--sh2);
+  border:1.5px solid var(--border);
+  animation:bookBob var(--d,4s) ease-in-out infinite alternate var(--dl,0s);
+}
+@keyframes bookBob { from{transform:translateY(0) rotate(-1deg)} to{transform:translateY(-12px) rotate(1deg)} }
+.sample-book-cover { height:150px; display:flex; align-items:center; justify-content:center; font-size:56px; }
+.sample-book-title { padding:10px 10px 12px; font-family:var(--f1); font-size:11px; font-weight:800; color:var(--ink); text-align:center; line-height:1.3; }
+
+/* How it works */
+.how { padding:64px 24px; background:var(--white); }
+.section-wrap { max-width:600px; margin:0 auto; }
+.eyebrow { font-size:11px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; color:var(--blue); margin-bottom:10px; }
+.section-h { font-family:var(--f1); font-size:clamp(26px,5vw,36px); font-weight:900; color:var(--ink); margin-bottom:8px; line-height:1.2; }
+.section-sub { font-size:15px; color:var(--muted); font-weight:600; line-height:1.6; margin-bottom:36px; }
+.how-steps { display:flex; flex-direction:column; gap:12px; }
+.how-step {
+  display:flex; gap:16px; align-items:center;
+  background:var(--bg); border-radius:var(--r2); padding:18px;
+  border:1.5px solid var(--border); transition:all .2s;
+}
+.how-step:hover { transform:translateX(6px); border-color:var(--blue); box-shadow:var(--sh1); }
+.how-icon { width:50px; height:50px; border-radius:var(--r2); flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:24px; }
+.how-title { font-family:var(--f1); font-size:15px; font-weight:800; color:var(--ink); margin-bottom:2px; }
+.how-desc { font-size:13px; color:var(--muted); font-weight:600; line-height:1.4; }
+
+/* Pricing */
+.pricing { padding:64px 24px; background:var(--ink); text-align:center; }
+.pricing-h { font-family:var(--f1); font-size:28px; font-weight:900; color:#fff; margin-bottom:6px; }
+.pricing-sub { font-size:14px; color:rgba(255,255,255,.5); font-weight:600; margin-bottom:32px; }
+.pricing-cards { display:flex; gap:14px; justify-content:center; flex-wrap:wrap; margin-bottom:32px; }
+.pricing-card {
+  background:rgba(255,255,255,.07); border:1.5px solid rgba(255,255,255,.1);
+  border-radius:var(--r3); padding:24px 20px; min-width:140px;
+  text-align:center; transition:all .2s; cursor:pointer;
+}
+.pricing-card:hover,.pricing-card.sel { background:rgba(255,255,255,.15); border-color:var(--gold); transform:translateY(-4px); }
+.pc-icon { font-size:34px; margin-bottom:10px; }
+.pc-name { font-family:var(--f1); font-size:14px; font-weight:800; color:#fff; margin-bottom:6px; }
+.pc-price { font-family:var(--f1); font-size:28px; font-weight:900; color:var(--gold); }
+.pc-sub { font-size:11px; color:rgba(255,255,255,.4); margin-top:4px; font-weight:600; }
+.pricing-cta {
+  display:inline-flex; align-items:center; gap:8px;
+  padding:16px 40px; border-radius:var(--pill);
+  font-family:var(--f1); font-size:17px; font-weight:900;
+  background:var(--gold); color:var(--ink); border:none;
+  box-shadow:0 6px 24px rgba(245,158,11,.4); transition:all .2s;
+}
+.pricing-cta:hover { transform:translateY(-2px); box-shadow:0 10px 32px rgba(245,158,11,.5); }
+
+/* Testimonials */
+.testis { padding:64px 24px; background:var(--bg); }
+.testi-grid { display:flex; flex-direction:column; gap:14px; max-width:600px; margin:0 auto; }
+.testi-card {
+  background:var(--white); border-radius:var(--r3); padding:24px;
+  border:1.5px solid var(--border);
+}
+.testi-stars { font-size:15px; margin-bottom:10px; }
+.testi-text { font-size:14px; color:var(--muted); font-weight:600; line-height:1.7; margin-bottom:16px; font-style:italic; }
+.testi-author { display:flex; align-items:center; gap:10px; }
+.testi-av { width:38px; height:38px; border-radius:50%; font-size:19px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.testi-name { font-family:var(--f1); font-size:13px; font-weight:800; color:var(--ink); }
+.testi-role { font-size:12px; color:var(--muted); font-weight:600; }
+
+/* Footer */
+.footer { background:var(--ink); padding:40px 24px 28px; }
+.footer-logo { font-family:var(--f1); font-size:20px; font-weight:900; color:#fff; margin-bottom:8px; }
+.footer-desc { font-size:13px; color:rgba(255,255,255,.4); line-height:1.6; margin-bottom:20px; max-width:300px; }
+.footer-links { display:flex; flex-wrap:wrap; gap:10px 20px; margin-bottom:20px; }
+.footer-links a { font-size:13px; color:rgba(255,255,255,.4); text-decoration:none; font-weight:600; transition:color .18s; }
+.footer-links a:hover { color:#fff; }
+.footer-bottom { font-size:12px; color:rgba(255,255,255,.2); border-top:1px solid rgba(255,255,255,.06); padding-top:16px; }
+
+/* ── WIZARD ──────────────────────────────── */
+#wizard { padding-top:58px; min-height:100vh; background:var(--bg); }
+.wiz-progress {
+  background:var(--white); border-bottom:1.5px solid var(--border);
+  padding:12px 20px; display:flex; align-items:center; gap:12px;
+  position:sticky; top:58px; z-index:100; box-shadow:var(--sh1);
+}
+.wiz-back { background:none; border:none; font-size:22px; color:var(--ink); padding:4px; flex-shrink:0; }
+.wiz-bar-track { flex:1; background:var(--light); border-radius:var(--pill); height:7px; overflow:hidden; }
+.wiz-bar-fill { height:100%; background:linear-gradient(90deg,var(--blue),var(--purple)); border-radius:var(--pill); transition:width .5s ease; }
+.wiz-step-label { font-size:12px; font-weight:800; color:var(--muted); white-space:nowrap; }
+.wiz-body { max-width:580px; margin:0 auto; padding:32px 20px 100px; }
+.wiz-panel { display:none; animation:panelIn .3s ease; }
+.wiz-panel.on { display:block; }
+@keyframes panelIn { from{opacity:0;transform:translateX(18px)} to{opacity:1;transform:translateX(0)} }
+.wiz-eyebrow { font-size:12px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:var(--blue); margin-bottom:8px; }
+.wiz-h { font-family:var(--f1); font-size:clamp(26px,6vw,36px); font-weight:900; color:var(--ink); line-height:1.15; margin-bottom:6px; }
+.wiz-h .accent { color:var(--coral); }
+.wiz-p { font-size:15px; color:var(--muted); font-weight:600; line-height:1.6; margin-bottom:28px; }
+
+/* Form elements */
+.field { margin-bottom:20px; }
+.field-label { display:flex; align-items:center; gap:6px; font-size:13px; font-weight:800; color:var(--ink); margin-bottom:8px; }
+.field-input {
+  width:100%; padding:13px 16px; border:1.5px solid var(--border);
+  border-radius:var(--r2); font-size:15px; color:var(--ink);
+  background:var(--white); outline:none; transition:border-color .18s,box-shadow .18s;
+}
+.field-input:focus { border-color:var(--blue); box-shadow:0 0 0 3px rgba(61,82,213,.1); }
+.field-input::placeholder { color:var(--muted); }
+.field-2col { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+
+.age-slider {
+  width:100%; -webkit-appearance:none; height:7px; border-radius:var(--pill);
+  outline:none; cursor:pointer;
+  background:linear-gradient(to right,var(--blue) 0%,var(--blue) var(--pct,50%),var(--light) var(--pct,50%));
+}
+.age-slider::-webkit-slider-thumb { -webkit-appearance:none; width:26px; height:26px; border-radius:50%; background:var(--white); border:2.5px solid var(--blue); box-shadow:var(--sh1); cursor:grab; }
+.age-num { font-family:var(--f1); font-size:38px; font-weight:900; color:var(--blue); text-align:center; margin-top:8px; }
+.age-num span { font-size:14px; color:var(--muted); font-family:var(--f2); font-weight:600; }
+
+.chips { display:flex; flex-wrap:wrap; gap:8px; }
+.chip {
+  padding:8px 17px; border:1.5px solid var(--border); border-radius:var(--pill);
+  font-size:13px; font-weight:700; color:var(--muted); background:var(--white);
+  cursor:pointer; transition:all .18s; user-select:none;
+}
+.chip:hover { border-color:var(--blue); color:var(--blue); }
+.chip.on { background:var(--blue); border-color:var(--blue); color:#fff; }
+.chip.on-coral { background:var(--coral); border-color:var(--coral); color:#fff; }
+.chip.on-green { background:var(--green); border-color:var(--green); color:#fff; }
+
+/* Upload */
+.upload-drop {
+  border:2px dashed var(--border); border-radius:var(--r3); padding:40px 20px;
+  text-align:center; background:var(--white); cursor:pointer;
+  transition:all .2s; position:relative;
+}
+.upload-drop:hover,.upload-drop.drag { border-color:var(--blue); background:#EEF0FF; }
+.upload-drop input { position:absolute; inset:0; opacity:0; cursor:pointer; z-index:2; }
+.upload-icon { font-size:44px; margin-bottom:10px; }
+.upload-title { font-family:var(--f1); font-size:17px; font-weight:800; color:var(--ink); margin-bottom:5px; }
+.upload-hint { font-size:13px; color:var(--muted); font-weight:600; line-height:1.5; }
+.upload-fake { display:inline-block; margin-top:12px; padding:9px 22px; background:var(--blue); color:#fff; border-radius:var(--pill); font-size:13px; font-weight:800; pointer-events:none; }
+.photo-row { display:flex; flex-wrap:wrap; gap:10px; margin-top:14px; }
+.photo-wrap { position:relative; animation:popIn .3s cubic-bezier(.34,1.56,.64,1); }
+@keyframes popIn { from{opacity:0;transform:scale(.5)} to{opacity:1;transform:scale(1)} }
+.photo-thumb { width:80px; height:80px; border-radius:var(--r2); object-fit:cover; border:2px solid var(--blue); box-shadow:var(--sh1); display:block; }
+.photo-rm { position:absolute; top:-7px; right:-7px; width:22px; height:22px; border-radius:50%; background:var(--coral); color:#fff; border:2px solid #fff; font-size:11px; font-weight:800; display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:var(--sh1); }
+.face-badge { display:none; align-items:center; gap:8px; background:#D1FAE5; border:1.5px solid #6EE7B7; border-radius:var(--pill); padding:9px 18px; font-size:13px; font-weight:800; color:#065F46; margin-top:12px; width:fit-content; }
+.face-badge.show { display:flex; }
+
+/* Style selector */
+.style-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-bottom:16px; }
+.style-card {
+  background:var(--white); border:1.5px solid var(--border); border-radius:var(--r2);
+  padding:16px 10px; text-align:center; cursor:pointer; transition:all .2s; position:relative;
+}
+.style-card:hover { border-color:var(--blue); transform:translateY(-3px); box-shadow:var(--sh1); }
+.style-card.on { border-color:var(--gold); background:#FFFBEB; box-shadow:0 0 0 3px rgba(245,158,11,.2); }
+.style-card.on::after { content:'✓'; position:absolute; top:7px; right:9px; background:var(--gold); color:var(--ink); border-radius:50%; width:18px; height:18px; font-size:10px; font-weight:900; display:flex; align-items:center; justify-content:center; }
+.style-art { font-size:36px; margin-bottom:7px; }
+.style-name { font-family:var(--f1); font-size:13px; font-weight:800; color:var(--ink); margin-bottom:2px; }
+.style-tag { font-size:10px; color:var(--muted); font-weight:600; }
+
+/* Theme selector */
+.theme-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
+.theme-card {
+  background:var(--white); border:1.5px solid var(--border); border-radius:var(--r2);
+  overflow:hidden; cursor:pointer; transition:all .2s; position:relative;
+}
+.theme-card:hover { border-color:var(--blue); transform:translateY(-3px); box-shadow:var(--sh1); }
+.theme-card.on { border-color:var(--gold); box-shadow:0 0 0 3px rgba(245,158,11,.2); }
+.theme-card.on::after { content:'✓'; position:absolute; top:7px; right:9px; background:var(--gold); color:var(--ink); border-radius:50%; width:18px; height:18px; font-size:10px; font-weight:900; display:flex; align-items:center; justify-content:center; }
+.theme-cover { height:90px; display:flex; align-items:center; justify-content:center; font-size:44px; }
+.theme-body { padding:9px 11px 11px; }
+.theme-name { font-family:var(--f1); font-size:13px; font-weight:800; color:var(--ink); margin-bottom:2px; }
+.theme-desc { font-size:11px; color:var(--muted); font-weight:600; }
+
+/* Buttons */
+.btn-row { display:flex; gap:12px; margin-top:28px; }
+.btn-back { padding:14px 22px; background:var(--white); color:var(--muted); border:1.5px solid var(--border); border-radius:var(--pill); font-size:15px; font-weight:800; transition:all .18s; }
+.btn-back:hover { border-color:var(--ink); color:var(--ink); }
+.btn-next { flex:1; padding:15px; background:var(--blue); color:#fff; border:none; border-radius:var(--pill); font-size:17px; font-weight:900; box-shadow:0 6px 20px rgba(61,82,213,.35); transition:all .2s; }
+.btn-next:hover { background:var(--ink2); transform:translateY(-2px); }
+.err-msg { display:none; align-items:center; gap:8px; background:#FEE2E2; border:1.5px solid #FECACA; border-radius:var(--r2); padding:10px 14px; font-size:13px; font-weight:700; color:var(--coral); margin-top:10px; }
+.err-msg.show { display:flex; }
+
+/* ── GENERATION SCREEN ───────────────────── */
+#generating {
+  min-height:100vh; padding-top:58px;
+  flex-direction:column; align-items:center; justify-content:center;
+  padding:80px 20px; text-align:center;
+  background:linear-gradient(160deg,#EEF0FF 0%,#F4F0FF 50%,#FFF4EE 100%);
+}
+.gen-card {
+  background:var(--white); border-radius:var(--r4); padding:32px 28px;
+  max-width:460px; width:100%; box-shadow:var(--sh3); border:1.5px solid var(--border); margin-bottom:20px;
+}
+.gen-anim { font-size:64px; margin-bottom:20px; animation:genBounce 1s ease-in-out infinite; }
+@keyframes genBounce { 0%,100%{transform:translateY(0) scale(1)} 50%{transform:translateY(-12px) scale(1.04)} }
+.gen-h { font-family:var(--f1); font-size:22px; font-weight:900; color:var(--ink); margin-bottom:6px; }
+.gen-sub { font-size:14px; color:var(--muted); font-weight:600; margin-bottom:22px; line-height:1.5; }
+.gen-steps { list-style:none; text-align:left; margin-bottom:22px; display:flex; flex-direction:column; gap:4px; }
+.gen-step-item { display:flex; align-items:center; gap:12px; padding:10px 12px; border-radius:var(--r2); font-size:14px; font-weight:700; color:var(--muted); transition:all .3s; }
+.gen-step-item.done { color:var(--green); background:#D1FAE5; }
+.gen-step-item.active { color:var(--blue); background:#EEF0FF; }
+.gen-spinner { width:17px; height:17px; border:2.5px solid rgba(61,82,213,.2); border-top-color:var(--blue); border-radius:50%; animation:spin .7s linear infinite; flex-shrink:0; }
+@keyframes spin { to{transform:rotate(360deg)} }
+.gen-step-icon { width:17px; text-align:center; flex-shrink:0; font-size:13px; }
+.gen-bar-wrap { background:var(--light); border-radius:var(--pill); height:8px; overflow:hidden; margin-bottom:8px; }
+.gen-bar { height:100%; background:linear-gradient(90deg,var(--blue),var(--purple),var(--gold)); border-radius:var(--pill); width:0%; transition:width .9s ease; }
+.gen-pct { font-size:12px; font-weight:800; color:var(--muted); }
+.gen-previews { max-width:460px; width:100%; }
+.gen-previews-label { font-size:11px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-bottom:10px; }
+.gen-previews-row { display:flex; gap:10px; overflow-x:auto; scrollbar-width:none; }
+.gen-previews-row::-webkit-scrollbar { display:none; }
+.gen-thumb {
+  flex-shrink:0; width:88px; height:88px; border-radius:var(--r2);
+  border:1.5px solid var(--border); overflow:hidden; background:var(--white);
+  display:flex; align-items:center; justify-content:center; font-size:26px; position:relative;
+}
+.gen-thumb img { width:100%; height:100%; object-fit:cover; display:block; animation:fadeIn .5s ease; }
+@keyframes fadeIn { from{opacity:0;transform:scale(.95)} to{opacity:1;transform:scale(1)} }
+.gen-thumb.loading::after {
+  content:''; position:absolute; inset:0;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.7),transparent);
+  animation:shimmer 1.4s infinite;
+}
+@keyframes shimmer { from{transform:translateX(-100%)} to{transform:translateX(100%)} }
+
+/* ── PREVIEW ─────────────────────────────── */
+#preview { padding-top:58px; min-height:100vh; background:var(--bg); display:none; flex-direction:column; }
+#preview.flex.on { display:flex; }
+.preview-bar {
+  background:var(--white); border-bottom:1.5px solid var(--border);
+  padding:12px 16px; display:flex; align-items:center; justify-content:space-between;
+  gap:8px; flex-wrap:wrap; position:sticky; top:58px; z-index:100; box-shadow:var(--sh1);
+}
+.preview-title { font-family:var(--f1); font-size:15px; font-weight:900; color:var(--ink); flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.preview-btns { display:flex; gap:7px; flex-shrink:0; }
+.pbtn { padding:9px 14px; border-radius:var(--pill); font-family:var(--f1); font-size:12px; font-weight:800; border:1.5px solid transparent; cursor:pointer; transition:all .18s; display:flex; align-items:center; gap:5px; white-space:nowrap; }
+.pbtn.ghost { border-color:var(--border); color:var(--muted); background:var(--white); }
+.pbtn.ghost:hover { border-color:var(--ink2); color:var(--ink); }
+.pbtn.gold { background:var(--gold); color:var(--ink); font-size:13px; }
+.pbtn.gold:hover { opacity:.9; }
+.pbtn.blue { background:var(--blue); color:#fff; font-size:13px; box-shadow:0 4px 14px rgba(61,82,213,.3); }
+.pbtn.blue:hover { background:var(--ink2); }
+.book-scroll { flex:1; overflow-y:auto; padding:18px 16px 80px; max-width:640px; margin:0 auto; width:100%; }
+
+/* Cover card */
+.story-cover {
+  border-radius:var(--r4); overflow:hidden; margin-bottom:14px;
+  box-shadow:var(--sh3); position:relative; min-height:280px;
+  display:flex; flex-direction:column; justify-content:flex-end;
+}
+.story-cover-img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; }
+.story-cover-placeholder { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:90px; }
+.story-cover-overlay { position:relative; z-index:2; padding:24px 20px 22px; background:linear-gradient(to top,rgba(0,0,0,.85) 0%,rgba(0,0,0,.4) 60%,transparent 100%); }
+.story-cover-title { font-family:var(--f1); font-size:clamp(20px,5vw,28px); font-weight:900; color:#fff; line-height:1.2; text-shadow:0 2px 12px rgba(0,0,0,.4); margin-bottom:5px; }
+.story-cover-meta { font-size:13px; color:rgba(255,255,255,.7); font-weight:600; }
+.story-cover-brand { position:absolute; top:14px; right:14px; z-index:3; background:rgba(255,255,255,.95); border-radius:var(--pill); padding:5px 13px; font-family:var(--f1); font-size:11px; font-weight:900; color:var(--ink); }
+.story-cover-ded { position:absolute; top:14px; left:14px; right:80px; z-index:3; background:rgba(0,0,0,.35); backdrop-filter:blur(6px); border-radius:var(--r2); padding:7px 12px; font-size:12px; color:rgba(255,255,255,.9); font-weight:600; font-style:italic; line-height:1.4; }
+
+/* Page cards */
+.page-card {
+  background:var(--white); border-radius:var(--r3); overflow:hidden; margin-bottom:12px;
+  box-shadow:var(--sh1); border:1.5px solid var(--border);
+  animation:pageReveal .4s ease both; animation-delay:var(--dl,0s);
+}
+@keyframes pageReveal { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+.page-illo { height:220px; position:relative; overflow:hidden; background:var(--ink); }
+.page-illo-img { width:100%; height:100%; object-fit:cover; display:block; }
+.page-illo-placeholder { width:100%; height:100%; display:flex; align-items:center; justify-content:center; }
+.page-illo-emoji { font-size:88px; filter:drop-shadow(0 6px 18px rgba(0,0,0,.2)); animation:bookBob 4s ease-in-out infinite; }
+.page-child-pin { position:absolute; bottom:10px; right:10px; width:64px; height:64px; border-radius:50%; object-fit:cover; border:3px solid var(--gold); box-shadow:0 4px 14px rgba(0,0,0,.3); }
+.page-num-tag { position:absolute; top:10px; left:10px; background:rgba(255,255,255,.22); backdrop-filter:blur(6px); border:1px solid rgba(255,255,255,.3); border-radius:var(--pill); padding:4px 10px; font-size:11px; font-weight:800; color:#fff; }
+.page-mood-tag { position:absolute; bottom:10px; left:10px; background:rgba(0,0,0,.28); backdrop-filter:blur(6px); border-radius:var(--pill); padding:4px 10px; font-size:10px; font-weight:800; color:rgba(255,255,255,.95); text-transform:uppercase; letter-spacing:.06em; }
+.page-text-body { padding:16px 18px 14px; background:#FFFDF8; }
+.page-text-label { font-size:10px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-bottom:6px; }
+.page-text-p { font-family:var(--f3); font-size:15px; line-height:1.85; color:var(--ink); font-style:italic; }
+.page-actions { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+.page-btn { padding:6px 13px; border-radius:var(--pill); border:1.5px solid var(--border); background:var(--white); color:var(--muted); font-size:12px; font-weight:700; cursor:pointer; transition:all .18s; display:flex; align-items:center; gap:4px; }
+.page-btn:hover { border-color:var(--blue); color:var(--blue); }
+.page-btn.regen { border-color:rgba(139,92,246,.3); color:var(--purple); }
+.page-btn.regen:hover { background:#F5F3FF; }
+
+/* ── PURCHASE ────────────────────────────── */
+#purchase { padding-top:58px; min-height:100vh; background:var(--bg); }
+.purchase-body { max-width:580px; margin:0 auto; padding:32px 20px 80px; }
+.purchase-preview-card { background:var(--ink); border-radius:var(--r4); overflow:hidden; margin-bottom:28px; box-shadow:var(--sh3); }
+.purchase-cover-img { width:100%; height:180px; object-fit:cover; display:block; }
+.purchase-cover-placeholder { width:100%; height:180px; display:flex; align-items:center; justify-content:center; font-size:72px; }
+.purchase-info { padding:18px 20px; }
+.purchase-story-title { font-family:var(--f1); font-size:22px; font-weight:900; color:#fff; margin-bottom:4px; line-height:1.2; }
+.purchase-meta { font-size:13px; color:rgba(255,255,255,.5); font-weight:600; margin-bottom:12px; }
+.purchase-chips { display:flex; gap:8px; flex-wrap:wrap; }
+.p-chip { background:rgba(255,255,255,.12); border-radius:var(--pill); padding:4px 12px; font-size:12px; font-weight:700; color:#fff; }
+.format-grid { display:flex; flex-direction:column; gap:12px; margin-bottom:28px; }
+.format-card { background:var(--white); border:1.5px solid var(--border); border-radius:var(--r3); padding:18px; cursor:pointer; transition:all .2s; display:flex; align-items:center; gap:14px; position:relative; }
+.format-card:hover { border-color:var(--blue); transform:translateX(4px); }
+.format-card.on { border-color:var(--blue); background:#EEF0FF; box-shadow:0 0 0 3px rgba(61,82,213,.1); }
+.format-icon { font-size:34px; flex-shrink:0; }
+.format-name { font-family:var(--f1); font-size:16px; font-weight:900; color:var(--ink); margin-bottom:3px; }
+.format-desc { font-size:13px; color:var(--muted); font-weight:600; line-height:1.4; }
+.format-price { margin-left:auto; flex-shrink:0; text-align:right; }
+.format-price-num { font-family:var(--f1); font-size:22px; font-weight:900; color:var(--blue); }
+.format-price-sub { font-size:11px; color:var(--muted); font-weight:600; }
+.format-pop { position:absolute; top:-10px; right:14px; background:var(--coral); color:#fff; border-radius:var(--pill); padding:3px 12px; font-size:10px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }
+.checkout-btn { width:100%; padding:18px; background:var(--blue); color:#fff; border:none; border-radius:var(--pill); font-family:var(--f1); font-size:20px; font-weight:900; box-shadow:0 8px 28px rgba(61,82,213,.4); transition:all .22s; margin-bottom:16px; display:flex; align-items:center; justify-content:center; gap:10px; }
+.checkout-btn:hover { background:var(--ink2); transform:translateY(-3px); }
+.trust-row { display:flex; justify-content:center; gap:18px; flex-wrap:wrap; }
+.trust-item { font-size:12px; color:var(--muted); font-weight:700; display:flex; align-items:center; gap:5px; }
+
+/* ── SUCCESS ─────────────────────────────── */
+#success {
+  min-height:100vh; padding-top:58px;
+  flex-direction:column; align-items:center; justify-content:center;
+  text-align:center; padding:80px 24px;
+  background:linear-gradient(160deg,#EEF0FF,#D1FAE5);
+}
+.success-art { font-size:76px; animation:popIn .6s cubic-bezier(.34,1.56,.64,1); margin-bottom:20px; }
+.success-h { font-family:var(--f1); font-size:clamp(30px,7vw,48px); font-weight:900; color:var(--ink); margin-bottom:12px; line-height:1.1; }
+.success-sub { font-size:16px; color:var(--muted); font-weight:600; max-width:380px; line-height:1.7; margin-bottom:32px; }
+.success-btns { display:flex; flex-direction:column; gap:12px; width:100%; max-width:340px; margin-bottom:20px; }
+.success-dl { display:flex; align-items:center; justify-content:center; gap:10px; padding:16px; background:var(--blue); color:#fff; border:none; border-radius:var(--pill); font-family:var(--f1); font-size:18px; font-weight:900; box-shadow:0 6px 24px rgba(61,82,213,.4); cursor:pointer; transition:all .2s; }
+.success-dl:hover { background:var(--ink2); transform:translateY(-2px); }
+.success-new { background:var(--white); color:var(--muted); border:1.5px solid var(--border); padding:14px; border-radius:var(--pill); font-family:var(--f1); font-size:15px; font-weight:800; cursor:pointer; transition:all .2s; }
+.success-new:hover { border-color:var(--ink); color:var(--ink); }
+
+/* ── MY BOOKS ────────────────────────────── */
+#mybooks { padding-top:58px; min-height:100vh; background:var(--bg); }
+.mybooks-header { padding:28px 20px 16px; }
+.mybooks-h { font-family:var(--f1); font-size:30px; font-weight:900; color:var(--ink); margin-bottom:5px; }
+.mybooks-sub { font-size:14px; color:var(--muted); font-weight:600; }
+.mybooks-new-btn { display:flex; align-items:center; justify-content:center; gap:8px; background:var(--blue); color:#fff; border:none; width:calc(100% - 40px); margin:0 20px 20px; padding:15px; border-radius:var(--pill); font-family:var(--f1); font-size:17px; font-weight:900; box-shadow:0 6px 20px rgba(61,82,213,.35); transition:all .2s; }
+.mybooks-new-btn:hover { background:var(--ink2); transform:translateY(-2px); }
+.books-list { padding:0 20px 80px; display:flex; flex-direction:column; gap:16px; }
+.book-card { background:var(--white); border-radius:var(--r4); overflow:hidden; box-shadow:var(--sh1); border:1.5px solid var(--border); }
+.book-card-cover { position:relative; height:230px; overflow:hidden; background:var(--ink); }
+.book-card-cover img { width:100%; height:100%; object-fit:cover; display:block; }
+.book-card-cover-placeholder { width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size:80px; }
+.book-card-title-overlay { position:absolute; bottom:0; left:0; right:0; padding:20px 16px 16px; background:linear-gradient(to top,rgba(0,0,0,.8),transparent); font-family:var(--f1); font-size:20px; font-weight:900; color:#fff; line-height:1.2; text-shadow:0 2px 8px rgba(0,0,0,.4); }
+.book-card-brand { position:absolute; bottom:12px; right:14px; background:rgba(255,255,255,.95); border-radius:var(--pill); padding:4px 12px; font-family:var(--f1); font-size:11px; font-weight:900; color:var(--ink); }
+.book-card-body { padding:16px 18px 18px; }
+.book-card-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+.book-date { font-size:13px; color:var(--muted); font-weight:600; }
+.book-status { border:1.5px solid var(--blue); color:var(--blue); border-radius:var(--pill); padding:4px 14px; font-size:12px; font-weight:800; }
+.book-actions { display:flex; gap:10px; align-items:center; }
+.btn-view-book { flex:1; display:flex; align-items:center; justify-content:center; gap:8px; background:var(--ink); color:#fff; border:none; padding:13px; border-radius:var(--pill); font-family:var(--f1); font-size:15px; font-weight:800; transition:all .2s; }
+.btn-view-book:hover { background:var(--blue); }
+.btn-del { width:44px; height:44px; border-radius:50%; background:var(--coral); color:#fff; border:none; font-size:17px; display:flex; align-items:center; justify-content:center; flex-shrink:0; box-shadow:0 4px 14px rgba(239,68,68,.3); transition:all .2s; }
+.btn-del:hover { transform:scale(1.1); }
+.empty-books { text-align:center; padding:60px 24px; }
+.empty-icon { font-size:60px; margin-bottom:14px; }
+.empty-h { font-family:var(--f1); font-size:22px; font-weight:900; color:var(--ink); margin-bottom:8px; }
+.empty-sub { font-size:14px; color:var(--muted); font-weight:600; line-height:1.6; }
+
+/* ── PDF overlay ─────────────────────────── */
+.pdf-ov { display:none; position:fixed; inset:0; z-index:99999; background:rgba(18,19,58,.82); backdrop-filter:blur(8px); align-items:center; justify-content:center; padding:24px; }
+.pdf-ov.show { display:flex; }
+.pdf-box { background:var(--white); border-radius:var(--r4); padding:36px 28px; max-width:340px; width:100%; text-align:center; box-shadow:var(--sh3); }
+.pdf-icon { font-size:50px; margin-bottom:12px; }
+.pdf-h { font-family:var(--f1); font-size:22px; font-weight:900; color:var(--ink); margin-bottom:5px; }
+.pdf-sub { font-size:13px; color:var(--muted); font-weight:600; margin-bottom:18px; line-height:1.5; }
+.pdf-bar-wrap { background:var(--light); border-radius:var(--pill); height:8px; margin-bottom:8px; overflow:hidden; }
+.pdf-bar { height:100%; background:linear-gradient(90deg,var(--blue),var(--purple),var(--gold)); border-radius:var(--pill); width:0%; transition:width .5s ease; }
+
+/* ── Edit modal ──────────────────────────── */
+.modal-ov { display:none; position:fixed; inset:0; z-index:9000; background:rgba(18,19,58,.72); backdrop-filter:blur(6px); align-items:center; justify-content:center; padding:20px; }
+.modal-ov.open { display:flex; }
+.modal-box { background:var(--white); border-radius:var(--r4); padding:26px; max-width:460px; width:100%; box-shadow:var(--sh3); animation:popIn .3s ease; }
+.modal-h { font-family:var(--f1); font-size:20px; font-weight:900; color:var(--ink); margin-bottom:12px; }
+.modal-ta { width:100%; padding:13px 15px; border:1.5px solid var(--border); border-radius:var(--r2); font-family:var(--f3); font-style:italic; font-size:14px; line-height:1.8; color:var(--ink); resize:vertical; min-height:110px; outline:none; }
+.modal-ta:focus { border-color:var(--blue); }
+.modal-btns { display:flex; gap:10px; margin-top:12px; }
+.modal-save { flex:1; padding:12px; background:var(--blue); color:#fff; border:none; border-radius:var(--r2); font-family:var(--f1); font-size:15px; font-weight:900; cursor:pointer; transition:background .18s; }
+.modal-save:hover { background:var(--ink2); }
+.modal-cancel { padding:12px 18px; background:var(--light); color:var(--muted); border:none; border-radius:var(--r2); font-family:var(--f1); font-size:14px; font-weight:800; cursor:pointer; }
+
+/* ── Toast ───────────────────────────────── */
+.toast { position:fixed; bottom:22px; left:50%; transform:translateX(-50%) translateY(60px); background:var(--ink); color:#fff; padding:12px 22px; border-radius:var(--pill); font-size:14px; font-weight:800; z-index:99000; transition:all .3s cubic-bezier(.34,1.56,.64,1); opacity:0; white-space:nowrap; box-shadow:var(--sh2); pointer-events:none; }
+.toast.show { transform:translateX(-50%) translateY(0); opacity:1; }
+
+/* Confetti */
+.confetti-p { position:fixed; border-radius:2px; pointer-events:none; z-index:99998; animation:cFall var(--d,3s) ease-in var(--dl,0s) both; }
+@keyframes cFall { 0%{opacity:1;transform:translateY(-60px) rotate(0)} 100%{opacity:0;transform:translateY(110vh) rotate(540deg)} }
+
+@media(min-width:560px) {
+  .style-grid { grid-template-columns:repeat(3,1fr); }
+  .theme-grid  { grid-template-columns:repeat(4,1fr); }
+  .testi-grid  { max-width:600px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ════════ NAV ════════ -->
+<nav class="nav">
+  <a class="nav-logo" onclick="showLanding()">StorySpark<span class="logo-spark">✦</span></a>
+  <div class="nav-actions">
+    <button class="nav-pill" onclick="showMyBooks()">My Books</button>
+    <button class="nav-cta"  onclick="startCreate()">✨ Create</button>
+  </div>
+</nav>
+
+<!-- ════════ CONNECT SCREEN ════════ -->
+<div data-screen="connect" class="flex on" id="connect">
+  <div class="connect-card">
+    <div class="connect-icon">🔑</div>
+    <div class="connect-h">Connect Replicate</div>
+    <div class="connect-sub">StorySpark uses Replicate to generate Pixar-style AI illustrations from your child's photo. Get your free API token in 60 seconds.</div>
+    <div class="connect-steps">
+      <div class="connect-step"><div class="cs-num">1</div><div>Go to <strong>replicate.com</strong> and sign up or log in</div></div>
+      <div class="connect-step"><div class="cs-num">2</div><div>Click your profile → <strong>API tokens</strong> → <strong>Create token</strong></div></div>
+      <div class="connect-step"><div class="cs-num">3</div><div>Copy and paste it below — only stored in your browser</div></div>
+    </div>
+    <div class="connect-label">Replicate API Token</div>
+    <input class="connect-input" type="text" id="apiTokenInput"
+      placeholder="r8_xxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
+    <div class="connect-hint">Stored only in your browser. Only sent to Replicate to generate images.</div>
+    <button class="connect-btn" id="connectBtn" onclick="testAndConnect()">🧪 Test &amp; Connect</button>
+    <div class="connect-result" id="connectResult"></div>
+    <button class="connect-skip" onclick="demoMode()">Continue in Demo Mode (no real images)</button>
+  </div>
+</div>
+
+<!-- ════════ LANDING ════════ -->
+<div data-screen="landing" id="landing">
+  <section class="hero">
+    <div class="hero-inner">
+      <div class="hero-badge">✦ AI-Powered · Pixar-Style · Personalised</div>
+      <h1 class="hero-h">Your child,<br><em>the hero</em> of every story</h1>
+      <p class="hero-sub">Upload a photo. Choose a world. Watch as AI transforms your child into an illustrated character and writes them a magical personalised storybook — in minutes.</p>
+      <button class="hero-cta" onclick="startCreate()">✨ Create Their Story</button>
+    </div>
+    <div class="hero-sample-books">
+      <div class="sample-book" style="--d:4s;--dl:0s"><div class="sample-book-cover" style="background:linear-gradient(135deg,#0D47A1,#311B92)">🚀🌙</div><div class="sample-book-title">Zara and the Space Explorer</div></div>
+      <div class="sample-book" style="--d:5s;--dl:.5s"><div class="sample-book-cover" style="background:linear-gradient(135deg,#1B5E20,#388E3C)">🌲🦊</div><div class="sample-book-title">Leo's Enchanted Forest</div></div>
+      <div class="sample-book" style="--d:4.5s;--dl:1s"><div class="sample-book-cover" style="background:linear-gradient(135deg,#4A148C,#880E4F)">🏰👑</div><div class="sample-book-title">Sofia and the Kingdom</div></div>
+    </div>
+  </section>
+
+  <section class="how">
+    <div class="section-wrap">
+      <div class="eyebrow">✦ How it works</div>
+      <h2 class="section-h">From photo to storybook in minutes</h2>
+      <p class="section-sub">Real AI image generation. Your child's face in every scene.</p>
+      <div class="how-steps">
+        <div class="how-step"><div class="how-icon" style="background:#EEF0FF">📸</div><div><div class="how-title">Upload a photo</div><div class="how-desc">A clear face photo. Replicate's AI converts it into a Pixar-style animated character that looks just like them.</div></div></div>
+        <div class="how-step"><div class="how-icon" style="background:#FFF4EE">🎨</div><div><div class="how-title">Choose art style &amp; world</div><div class="how-desc">Pixar 3D, anime, watercolour storybook — and 8 cinematic worlds from space to safari.</div></div></div>
+        <div class="how-step"><div class="how-icon" style="background:#D1FAE5">🤖</div><div><div class="how-title">AI generates every scene</div><div class="how-desc">Claude writes the story. Replicate generates cinematic illustrations for every page with your child as the hero.</div></div></div>
+        <div class="how-step"><div class="how-icon" style="background:#FEF3C7">📖</div><div><div class="how-title">Download or print</div><div class="how-desc">Get a print-quality PDF instantly, or order a hardcover book delivered to your door.</div></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="pricing">
+    <div class="pricing-h">Simple, honest pricing</div>
+    <div class="pricing-sub">No subscriptions. Pay once, keep forever.</div>
+    <div class="pricing-cards">
+      <div class="pricing-card"><div class="pc-icon">📄</div><div class="pc-name">Digital PDF</div><div class="pc-price">R199</div><div class="pc-sub">Instant download</div></div>
+      <div class="pricing-card sel"><div class="pc-icon">📖</div><div class="pc-name">Softcover</div><div class="pc-price">R499</div><div class="pc-sub">Incl. SA delivery</div></div>
+      <div class="pricing-card"><div class="pc-icon">📚</div><div class="pc-name">Hardcover</div><div class="pc-price">R699</div><div class="pc-sub">Gold foil + gift box</div></div>
+    </div>
+    <button class="pricing-cta" onclick="startCreate()">✨ Create Your Story Now</button>
+  </section>
+
+  <section class="testis">
+    <div class="section-wrap">
+      <div class="eyebrow">💛 Parent reviews</div>
+      <h2 class="section-h">Families love it</h2>
+      <div class="testi-grid">
+        <div class="testi-card"><div class="testi-stars">⭐⭐⭐⭐⭐</div><div class="testi-text">"My daughter screamed when she saw herself as the princess! We've read it every night for a month straight."</div><div class="testi-author"><div class="testi-av" style="background:#FCE7F3">👩</div><div><div class="testi-name">Sarah M.</div><div class="testi-role">Mom to Lily, age 5</div></div></div></div>
+        <div class="testi-card"><div class="testi-stars">⭐⭐⭐⭐⭐</div><div class="testi-text">"Noah carried it to school to show his teacher. Best gift I've ever given — the illustrations look exactly like him."</div><div class="testi-author"><div class="testi-av" style="background:#DBEAFE">👨</div><div><div class="testi-name">James K.</div><div class="testi-role">Dad to Noah, age 7</div></div></div></div>
+        <div class="testi-card"><div class="testi-stars">⭐⭐⭐⭐⭐</div><div class="testi-text">"Bought as a baby shower gift — the mom cried! The dedication page alone is worth every cent."</div><div class="testi-author"><div class="testi-av" style="background:#D1FAE5">👩</div><div><div class="testi-name">Thandi N.</div><div class="testi-role">Gift-giver ✦</div></div></div></div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="footer-logo">StorySpark✦</div>
+    <div class="footer-desc">AI-powered personalised storybooks. Your child, the hero — every time. Made with love in South Africa.</div>
+    <div class="footer-links"><a href="#">How It Works</a><a href="#">Pricing</a><a href="#">Privacy</a><a href="#">Terms</a><a href="#">Contact</a></div>
+    <div class="footer-bottom">© 2025 StorySpark · South Africa</div>
+  </footer>
+</div>
+
+<!-- ════════ WIZARD ════════ -->
+<div data-screen="wizard" id="wizard">
+  <div class="wiz-progress">
+    <button class="wiz-back" onclick="wizBack()">←</button>
+    <div class="wiz-bar-track"><div class="wiz-bar-fill" id="wizBarFill"></div></div>
+    <div class="wiz-step-label" id="wizStepLabel">Step 1 of 4</div>
+  </div>
+  <div class="wiz-body">
+
+    <!-- Step 1: Photo -->
+    <div class="wiz-panel on" id="wp1">
+      <div class="wiz-eyebrow">📸 Step 1 of 4</div>
+      <h2 class="wiz-h">Upload your <span class="accent">star</span></h2>
+      <p class="wiz-p">A clear, front-facing photo gives the best results. The AI will transform your child into an animated character while keeping their likeness.</p>
+      <div class="upload-drop" id="uploadDrop">
+        <input type="file" id="photoInput" accept="image/*" multiple>
+        <div class="upload-icon">📷</div>
+        <div class="upload-title">Tap to choose photos</div>
+        <div class="upload-hint">JPEG · PNG · HEIC · Good lighting &amp; clear face works best</div>
+        <div class="upload-fake">Browse Photos</div>
+      </div>
+      <div class="photo-row" id="photoRow"></div>
+      <div class="face-badge" id="faceBadge">✅ Great photo detected!</div>
+      <div class="field" style="margin-top:22px">
+        <label class="field-label">🐾 Include a pet? (optional)</label>
+        <input class="field-input" id="petInput" type="text" placeholder="e.g. Biscuit the golden retriever — becomes the sidekick">
+      </div>
+      <div class="err-msg" id="e1">⚠️ Please upload at least one photo to continue.</div>
+      <div class="btn-row">
+        <button class="btn-back" onclick="showLanding()">← Home</button>
+        <button class="btn-next" onclick="wizGo(2)">Continue →</button>
+      </div>
+    </div>
+
+    <!-- Step 2: Details -->
+    <div class="wiz-panel" id="wp2">
+      <div class="wiz-eyebrow">✏️ Step 2 of 4</div>
+      <h2 class="wiz-h">About your <span class="accent">hero</span></h2>
+      <p class="wiz-p">The more you share, the more personal and magical the story becomes!</p>
+      <div class="field-2col">
+        <div class="field"><label class="field-label">🦸 Name *</label><input class="field-input" id="nameInput" type="text" placeholder="e.g. Mia" maxlength="20"></div>
+        <div class="field">
+          <label class="field-label">💬 Pronouns</label>
+          <div class="chips" id="pronounChips" style="margin-top:4px">
+            <div class="chip" onclick="solo(this,'pronounChips','on-coral')">She/Her</div>
+            <div class="chip on-coral" onclick="solo(this,'pronounChips','on-coral')">He/Him</div>
+            <div class="chip" onclick="solo(this,'pronounChips','on-coral')">They</div>
+          </div>
+        </div>
+      </div>
+      <div class="field">
+        <label class="field-label">🎂 Age</label>
+        <input class="age-slider" type="range" id="ageSlider" min="2" max="10" value="6" oninput="updateAge(this)">
+        <div class="age-num" id="ageNum">6 <span>years old</span></div>
+      </div>
+      <div class="field">
+        <label class="field-label">🌈 Personality <span style="font-weight:600;color:var(--muted);font-family:var(--f2)">(pick up to 3)</span></label>
+        <div class="chips" id="traitChips">
+          <div class="chip" onclick="multiChip(this,3)">🦁 Brave</div>
+          <div class="chip" onclick="multiChip(this,3)">🔭 Curious</div>
+          <div class="chip" onclick="multiChip(this,3)">🤣 Silly</div>
+          <div class="chip on" onclick="multiChip(this,3)">💚 Kind</div>
+          <div class="chip" onclick="multiChip(this,3)">⚡ Adventurous</div>
+          <div class="chip on" onclick="multiChip(this,3)">🌿 Nature lover</div>
+          <div class="chip" onclick="multiChip(this,3)">🎨 Creative</div>
+          <div class="chip" onclick="multiChip(this,3)">🦸 Heroic</div>
+          <div class="chip" onclick="multiChip(this,3)">😊 Cheerful</div>
+        </div>
+      </div>
+      <div class="field"><label class="field-label">⚡ Secret superpower? (optional)</label><input class="field-input" id="powerInput" type="text" placeholder="e.g. Always knows how to cheer people up"></div>
+      <div class="field"><label class="field-label">💌 Dedication message (optional)</label><input class="field-input" id="dedInput" type="text" placeholder="e.g. For Mia, who lights up our world. Love, Mom &amp; Dad"></div>
+      <div class="err-msg" id="e2">⚠️ Please enter your child's name.</div>
+      <div class="btn-row">
+        <button class="btn-back" onclick="wizGo(1)">← Back</button>
+        <button class="btn-next" onclick="wizGo(3)">Continue →</button>
+      </div>
+    </div>
+
+    <!-- Step 3: Art Style -->
+    <div class="wiz-panel" id="wp3">
+      <div class="wiz-eyebrow">🎨 Step 3 of 4</div>
+      <h2 class="wiz-h">Choose art <span class="accent">style</span></h2>
+      <p class="wiz-p">This is how your child's character and every scene will look. Replicate AI generates real images in this style.</p>
+      <div class="style-grid" id="styleGrid"></div>
+      <div class="err-msg" id="e3">⚠️ Please select an art style.</div>
+      <div class="btn-row">
+        <button class="btn-back" onclick="wizGo(2)">← Back</button>
+        <button class="btn-next" onclick="wizGo(4)">Continue →</button>
+      </div>
+    </div>
+
+    <!-- Step 4: Theme & Mood -->
+    <div class="wiz-panel" id="wp4">
+      <div class="wiz-eyebrow">🗺️ Step 4 of 4</div>
+      <h2 class="wiz-h">Choose your <span class="accent">world</span></h2>
+      <p class="wiz-p">Every page illustration will be set in this world — rendered as a cinematic AI scene.</p>
+      <div class="theme-grid" id="themeGrid"></div>
+      <div class="field" style="margin-top:22px">
+        <label class="field-label">🎭 Story mood</label>
+        <div class="chips" id="moodChips">
+          <div class="chip on-green on" onclick="solo(this,'moodChips','on-green')">💛 Heartwarming</div>
+          <div class="chip" onclick="solo(this,'moodChips','on-green')">⚡ Exciting</div>
+          <div class="chip" onclick="solo(this,'moodChips','on-green')">😂 Funny</div>
+          <div class="chip" onclick="solo(this,'moodChips','on-green')">🌙 Calming</div>
+        </div>
+      </div>
+      <div class="err-msg" id="e4">⚠️ Please select a world theme.</div>
+      <div class="btn-row">
+        <button class="btn-back" onclick="wizGo(3)">← Back</button>
+        <button class="btn-next" onclick="startGeneration()">✨ Create My Story!</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ════════ GENERATING ════════ -->
+<div data-screen="generating" class="flex" id="generating">
+  <div class="gen-card">
+    <div class="gen-anim" id="genAnim">📖</div>
+    <div class="gen-h" id="genH">Creating your story…</div>
+    <div class="gen-sub" id="genSub">This takes 2–4 minutes. Real AI is generating each scene.</div>
+    <ul class="gen-steps">
+      <li class="gen-step-item" id="gs1"><span class="gen-step-icon">✍️</span> Writing your personalised story</li>
+      <li class="gen-step-item" id="gs2"><span class="gen-step-icon">🧬</span> Converting photo to animated character</li>
+      <li class="gen-step-item" id="gs3"><span class="gen-step-icon">🎨</span> Generating cover illustration</li>
+      <li class="gen-step-item" id="gs4"><span class="gen-step-icon">🖼️</span> Illustrating all story pages</li>
+      <li class="gen-step-item" id="gs5"><span class="gen-step-icon">📚</span> Assembling your storybook</li>
+    </ul>
+    <div class="gen-bar-wrap"><div class="gen-bar" id="genBar"></div></div>
+    <div class="gen-pct" id="genPct">0%</div>
+    <div id="errorLog" style="margin-top:12px;text-align:left;font-size:11px;font-family:monospace;color:#EF4444;background:#1a0000;border-radius:8px;padding:8px;max-height:120px;overflow-y:auto;display:none"></div>
+  </div>
+  <div class="gen-previews">
+    <div class="gen-previews-label">Generated so far</div>
+    <div class="gen-previews-row" id="genPreviewRow"></div>
+  </div>
+</div>
+
+<!-- ════════ PREVIEW ════════ -->
+<div data-screen="preview" class="flex" id="preview">
+  <div class="preview-bar">
+    <div class="preview-title" id="previewTitle">✨ Your story is ready!</div>
+    <div class="preview-btns">
+      <button class="pbtn ghost" onclick="startCreate()">✏️ Edit</button>
+      <button class="pbtn ghost" id="regenBtn" onclick="regenAll()">🔄</button>
+      <button class="pbtn gold" onclick="downloadPDF()">⬇️ PDF</button>
+      <button class="pbtn blue" onclick="showPurchase()">🎁 Buy</button>
+    </div>
+  </div>
+  <div class="book-scroll" id="bookScroll"></div>
+</div>
+
+<!-- ════════ PURCHASE ════════ -->
+<div data-screen="purchase" id="purchase">
+  <div class="purchase-body">
+    <div class="wiz-eyebrow">🎁 Last step!</div>
+    <h2 class="wiz-h">Make it <span class="accent">yours forever</span></h2>
+    <p class="wiz-p">Choose your format and we'll get it to you.</p>
+    <div class="purchase-preview-card">
+      <div id="purchaseCoverEl"></div>
+      <div class="purchase-info">
+        <div class="purchase-story-title" id="ppTitle">Your Story</div>
+        <div class="purchase-meta" id="ppMeta">8 pages · AI Illustrated</div>
+        <div class="purchase-chips"><div class="p-chip">🎨 AI Illustrated</div><div class="p-chip">✏️ Editable</div><div class="p-chip">⬇️ Instant PDF</div></div>
+      </div>
+    </div>
+    <div class="format-grid">
+      <div class="format-card" onclick="selFormat(this,'R199')">
+        <div class="format-icon">📄</div><div><div class="format-name">Digital PDF</div><div class="format-desc">Instant download. Print at home or read on any device.</div></div>
+        <div class="format-price"><div class="format-price-num">R199</div><div class="format-price-sub">once-off</div></div>
+      </div>
+      <div class="format-card" onclick="selFormat(this,'R499')" style="position:relative">
+        <div class="format-pop">⭐ Popular</div>
+        <div class="format-icon">📖</div><div><div class="format-name">Softcover Book</div><div class="format-desc">Professionally printed &amp; delivered in 7–10 days.</div></div>
+        <div class="format-price"><div class="format-price-num">R499</div><div class="format-price-sub">incl. delivery</div></div>
+      </div>
+      <div class="format-card" onclick="selFormat(this,'R699')">
+        <div class="format-icon">📚</div><div><div class="format-name">Hardcover Keepsake</div><div class="format-desc">Premium hardcover, gold foil title, gift box.</div></div>
+        <div class="format-price"><div class="format-price-num">R699</div><div class="format-price-sub">incl. delivery</div></div>
+      </div>
+    </div>
+    <button class="checkout-btn" onclick="doCheckout()">🔒 Purchase — <span id="checkoutPrice">select above</span></button>
+    <div class="trust-row">
+      <div class="trust-item">🔒 Secure</div>
+      <div class="trust-item">💯 Guaranteed</div>
+      <div class="trust-item">📦 Free SA delivery</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ SUCCESS ════════ -->
+<div data-screen="success" class="flex" id="success">
+  <div class="success-art">🎉</div>
+  <h2 class="success-h" id="successH">Your story is ready!</h2>
+  <p class="success-sub" id="successSub">Enjoy reading it together!</p>
+  <div class="success-btns">
+    <button class="success-dl" onclick="downloadPDF()">⬇️ Download Your Story</button>
+    <button class="success-new" onclick="resetAll()">✨ Create Another Story</button>
+  </div>
+  <div style="font-size:13px;color:var(--muted);font-weight:600">📧 Download link also sent to your email</div>
+</div>
+
+<!-- ════════ MY BOOKS ════════ -->
+<div data-screen="mybooks" id="mybooks">
+  <div class="mybooks-header">
+    <h1 class="mybooks-h">My Books</h1>
+    <p class="mybooks-sub">Create and manage your personalised storybooks</p>
+  </div>
+  <button class="mybooks-new-btn" onclick="startCreate()">＋ Create New Book</button>
+  <div class="books-list" id="booksList"></div>
+</div>
+
+<!-- Modals & overlays -->
+<div class="modal-ov" id="editModal">
+  <div class="modal-box">
+    <div class="modal-h">✏️ Edit Page Text</div>
+    <textarea class="modal-ta" id="editTa" rows="5"></textarea>
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="closeEdit()">Cancel</button>
+      <button class="modal-save" onclick="saveEdit()">Save ✓</button>
+    </div>
+  </div>
+</div>
+
+<div class="pdf-ov" id="pdfOv">
+  <div class="pdf-box">
+    <div class="pdf-icon">📄</div>
+    <div class="pdf-h" id="pdfH">Building PDF…</div>
+    <div class="pdf-sub" id="pdfSub">Packaging your storybook…</div>
+    <div class="pdf-bar-wrap"><div class="pdf-bar" id="pdfBar"></div></div>
+    <div style="font-size:12px;font-weight:700;color:var(--muted);margin-top:6px" id="pdfPct">0%</div>
+  </div>
+</div>
+
+<div class="toast" id="toastEl"></div>
+
+<script>
+'use strict';
+
+// ════════════════════════════════════════════
+// CONFIG
+// ════════════════════════════════════════════
+// API calls go through our server (same origin = no CORS issues)
+// Server proxies everything to Replicate
+const API_BASE = '';  // empty = same origin (works both locally and on Railway)
+
+function replicateProxy(path) {
+  return API_BASE + '/api/replicate' + path;
+}
+
+// Model versions — pinned for stability
+const MODELS = {
+  // Latest versions fetched from replicate.com/*/versions March 2026
+  faceToMany: 'fofr/face-to-many:a07f252abbbd832009640b27f063ea52d87d7a23a185ca165bec23b5adc8deaf',
+  sdxl:       'bytedance/sdxl-lightning-4step:5f24084160c9089501c1b3545d9be3c27883ae2239b6f412990e82d4a6210f8f',
+};
+
+const ART_STYLES = [
+  { id:'pixar',  name:'Pixar 3D',     tag:'Most popular', art:'🎬', bg:'#EEF0FF',
+    faceStyle:'3d',
+    scenePrompt:'Pixar 3D animated movie scene, cinematic lighting, vibrant colours, Disney Pixar quality, volumetric lighting, photorealistic textures, depth of field',
+    charPrompt:'Pixar 3D animation style, expressive face, cinematic render, Disney Pixar movie quality',
+    neg:'realistic photo, ugly, deformed, blurry, watermark, text, adult' },
+  { id:'anime',  name:'Anime',        tag:'', art:'⛩️', bg:'#FFF4EE',
+    faceStyle:'anime',
+    scenePrompt:'Studio Ghibli anime background, painterly, soft warm colours, Miyazaki inspired, magical atmosphere, detailed landscape',
+    charPrompt:'Studio Ghibli anime style, expressive anime eyes, hand-painted, soft tones',
+    neg:'realistic, 3D render, ugly, western cartoon, blurry' },
+  { id:'book',   name:'Storybook',    tag:'', art:'📖', bg:'#D1FAE5',
+    faceStyle:'watercolor',
+    scenePrompt:"Children's picture book illustration, warm watercolour, soft brush strokes, gentle colours, professional picture book art",
+    charPrompt:"Watercolour children's book illustration, warm tones, soft and gentle style",
+    neg:'realistic, 3D, photograph, scary, dark, ugly' },
+  { id:'comic',  name:'Comic Hero',   tag:'', art:'💥', bg:'#FEE2E2',
+    faceStyle:'comic',
+    scenePrompt:'Comic book panel, bold ink outlines, vibrant flat colours, dynamic composition, graphic novel style',
+    charPrompt:'Comic book style, bold outlines, vibrant colours, dynamic pose, superhero art',
+    neg:'realistic, soft, blurry, ugly, deformed' },
+  { id:'fantasy',name:'Fantasy Art',  tag:'', art:'🧙', bg:'#EDE9FE',
+    faceStyle:'3d',
+    scenePrompt:'Epic fantasy concept art, digital painting, dramatic lighting, magical atmosphere, artstation quality, cinematic scene',
+    charPrompt:'Fantasy concept art, digital painting, magical atmosphere, artstation quality',
+    neg:'realistic photo, ugly, amateur, blurry' },
+  { id:'clay',   name:'Claymation',   tag:'', art:'🎭', bg:'#FEF3C7',
+    faceStyle:'clay',
+    scenePrompt:'Claymation stop-motion scene, textured clay environment, warm lighting, Laika studios quality, handcrafted miniature world',
+    charPrompt:'Claymation clay texture, stop-motion style, warm playful colours, Laika quality',
+    neg:'realistic, flat, 2D, ugly, deformed' },
+];
+
+const THEMES = [
+  { id:'forest',    name:'Enchanted Forest',  emoji:'🌲', grad:'linear-gradient(135deg,#14532D,#166534)',
+    env:'enchanted magical forest, ancient glowing trees, fireflies, mystical atmosphere, golden light through leaves, fairy tale setting' },
+  { id:'space',     name:'Space Explorer',    emoji:'🚀', grad:'linear-gradient(135deg,#1E3A8A,#4C1D95)',
+    env:'outer space, colourful nebula, floating asteroids, distant planets and stars, zero gravity, cosmic adventure' },
+  { id:'ocean',     name:'Ocean Kingdom',     emoji:'🌊', grad:'linear-gradient(135deg,#164E63,#1E40AF)',
+    env:'underwater ocean kingdom, coral reef, bioluminescent sea life, treasure, shafts of light through crystal clear water' },
+  { id:'kingdom',   name:'Kingdom of Heroes', emoji:'🏰', grad:'linear-gradient(135deg,#3B0764,#831843)',
+    env:'medieval fantasy kingdom, majestic castle, rolling hills, knights, magical sunset sky, epic fairy tale landscape' },
+  { id:'safari',    name:'Safari Adventure',  emoji:'🦁', grad:'linear-gradient(135deg,#7C2D12,#713F12)',
+    env:'African safari savanna, acacia trees, golden grasslands, lions giraffes elephants, dramatic golden sunset, adventure' },
+  { id:'superhero', name:'Superhero City',    emoji:'🦸', grad:'linear-gradient(135deg,#7F1D1D,#1E3A8A)',
+    env:'futuristic city skyline, skyscrapers, dramatic stormy sky, hero flying above, glowing lights, cinematic superhero scene' },
+  { id:'dino',      name:'Dino World',        emoji:'🦕', grad:'linear-gradient(135deg,#14532D,#78350F)',
+    env:'prehistoric Jurassic landscape, tropical jungle, dinosaurs roaming, volcanoes, lush prehistoric plants, dramatic sky' },
+  { id:'galaxy',    name:'Galaxy Far Away',   emoji:'🌌', grad:'linear-gradient(135deg,#0C0A1E,#1E3A8A)',
+    env:'epic sci-fi space landscape, alien planet surface, twin suns setting, crystalline alien structures, nebula sky' },
+];
+
+// ════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════
+const S = {
+  token:    '',
+  isDemo:   false,
+  photos:   [],
+  pet:      '',
+  name:     '',
+  age:      6,
+  pronouns: 'He/Him',
+  traits:   ['Kind', 'Nature lover'],
+  power:    '',
+  ded:      '',
+  style:    null,
+  theme:    null,
+  mood:     'Heartwarming',
+  story:    [],
+  images:   {},   // 'cover' | 0..n → dataURL or null
+  charImg:  null, // styled character image (reused across pages)
+  editIdx:  -1,
+  selPrice: null,
+  books:    [],
+};
+
+// ════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════
+(function init() {
+  renderStyleGrid();
+  renderThemeGrid();
+  initAgeSlider();
+
+  // Clear old keys from previous app versions
+  ['replicate_key','stability_key','fal_key'].forEach(k => localStorage.removeItem(k));
+
+  // Pre-fill token input if previously saved this session
+  const saved = sessionStorage.getItem('r8_token') || '';
+  if (saved) {
+    const inp = document.getElementById('apiTokenInput');
+    if (inp) inp.value = saved;
+  }
+  // Always show connect screen — user must click Test & Connect
+})();
+
+// ════════════════════════════════════════════
+// SCREEN NAVIGATION
+// ════════════════════════════════════════════
+function show(id) {
+  document.querySelectorAll('[data-screen]').forEach(el => el.classList.remove('on'));
+  const el = document.getElementById(id);
+  if (el) el.classList.add('on');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function showLanding()  { show('landing'); }
+function showMyBooks()  { renderMyBooks(); show('mybooks'); }
+function startCreate()  {
+  if (!S.token && !S.isDemo) { show('connect'); return; }
+  wizGo(1, false);
+  show('wizard');
+}
+function showPurchase() {
+  const n = S.name || 'Your Hero';
+  document.getElementById('ppTitle').textContent = `${n} and the ${S.theme?.name || 'Adventure'}`;
+  document.getElementById('ppMeta').textContent = `Age ${S.age} · ${S.mood} · ${S.story.length} pages`;
+  const coverEl = document.getElementById('purchaseCoverEl');
+  const coverImg = S.images['cover'];
+  coverEl.innerHTML = coverImg
+    ? `<img class="purchase-cover-img" src="${coverImg}" alt="Cover">`
+    : `<div class="purchase-cover-placeholder" style="background:${S.theme?.grad || '#1E3A8A'}">${S.theme?.emoji || '🌟'}</div>`;
+  show('purchase');
+}
+
+// ════════════════════════════════════════════
+// CONNECT SCREEN
+// ════════════════════════════════════════════
+async function testAndConnect() {
+  const inp = document.getElementById('apiTokenInput');
+  const btn = document.getElementById('connectBtn');
+  const res = document.getElementById('connectResult');
+  const token = inp ? inp.value.trim() : '';
+
+  const setRes = (msg, ok) => {
+    res.style.color = ok ? '#065F46' : '#DC2626';
+    res.style.fontWeight = '700';
+    res.textContent = msg;
+  };
+
+  if (!token) { setRes('⚠️ Please paste your Replicate token above', false); return; }
+  if (!token.startsWith('r8_')) { setRes('⚠️ Replicate tokens start with r8_ — check you copied it fully', false); return; }
+
+  btn.textContent = '⏳ Testing…'; btn.disabled = true;
+  setRes('Connecting to Replicate…', true);
+
+  try {
+    // Test token by calling the account endpoint
+    const resp = await fetch(replicateProxy('/v1/account'), {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+
+    if (resp.ok) {
+      const account = await resp.json();
+      S.token  = token;
+      S.isDemo = false;
+      sessionStorage.setItem('r8_token', token);
+      setRes(`✅ Connected as @${account.username || 'user'} — loading app…`, true);
+      setTimeout(() => showLanding(), 1100);
+    } else {
+      const err = await resp.text();
+      console.error('Replicate auth failed:', resp.status, err);
+      if (resp.status === 401) setRes('❌ Invalid token (401) — create a fresh token at replicate.com → Account → API tokens', false);
+      else if (resp.status === 403) setRes('❌ Token forbidden (403) — check token permissions', false);
+      else setRes(`❌ Error ${resp.status}: ${err.substring(0, 120)}`, false);
+    }
+  } catch(e) {
+    console.error('Connection error:', e);
+    setRes(`❌ Network error: ${e.message}`, false);
+  }
+  btn.textContent = '🧪 Test & Connect'; btn.disabled = false;
+}
+
+function demoMode() {
+  S.isDemo = true; S.token = '';
+  toast('Demo mode — story text works, images will be placeholders');
+  showLanding();
+}
+
+// ════════════════════════════════════════════
+// WIZARD
+// ════════════════════════════════════════════
+let curPanel = 1;
+
+function wizGo(n, validate = true) {
+  if (validate && n > curPanel) {
+    if (curPanel === 1 && !S.photos.length) { showErr('e1'); return; }
+    if (curPanel === 2) {
+      S.name = document.getElementById('nameInput').value.trim();
+      if (!S.name) { showErr('e2'); document.getElementById('nameInput').focus(); return; }
+    }
+    if (curPanel === 3 && !S.style) { showErr('e3'); return; }
+    if (curPanel === 4 && !S.theme) { showErr('e4'); return; }
+  }
+  syncState();
+  hideErr('e1'); hideErr('e2'); hideErr('e3'); hideErr('e4');
+  document.querySelectorAll('.wiz-panel').forEach(p => p.classList.remove('on'));
+  document.getElementById(`wp${n}`).classList.add('on');
+  document.getElementById('wizBarFill').style.width = ((n - 1) / 4 * 100) + '%';
+  document.getElementById('wizStepLabel').textContent = `Step ${n} of 4`;
+  curPanel = n;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function wizBack() {
+  if (curPanel > 1) wizGo(curPanel - 1, false);
+  else showLanding();
+}
+
+function syncState() {
+  S.name     = (document.getElementById('nameInput')?.value || '').trim() || S.name;
+  S.age      = parseInt(document.getElementById('ageSlider')?.value || 6);
+  S.pet      = (document.getElementById('petInput')?.value || '').trim();
+  S.power    = (document.getElementById('powerInput')?.value || '').trim();
+  S.ded      = (document.getElementById('dedInput')?.value || '').trim();
+  const pc   = document.querySelector('#pronounChips .chip.on-coral');
+  if (pc) S.pronouns = pc.textContent.trim();
+  S.traits   = [];
+  document.querySelectorAll('#traitChips .chip.on').forEach(c => S.traits.push(c.textContent.trim().replace(/^.\s*/,'')));
+  const mc   = document.querySelector('#moodChips .chip.on-green');
+  if (mc) S.mood = mc.textContent.trim().replace(/^.\s*/,'');
+}
+
+// ════════════════════════════════════════════
+// PHOTO UPLOAD
+// ════════════════════════════════════════════
+document.getElementById('photoInput').addEventListener('change', e => handleFiles(e.target.files));
+const ud = document.getElementById('uploadDrop');
+ud.addEventListener('dragover', e => { e.preventDefault(); ud.classList.add('drag'); });
+ud.addEventListener('dragleave', () => ud.classList.remove('drag'));
+ud.addEventListener('drop', e => { e.preventDefault(); ud.classList.remove('drag'); handleFiles(e.dataTransfer.files); });
+
+function handleFiles(files) {
+  Array.from(files).forEach(f => {
+    if (!f.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      S.photos.push(ev.target.result);
+      addThumb(ev.target.result, S.photos.length - 1);
+      document.getElementById('faceBadge').classList.add('show');
+    };
+    reader.readAsDataURL(f);
+  });
+}
+function addThumb(src, idx) {
+  const row = document.getElementById('photoRow');
+  const w = document.createElement('div');
+  w.className = 'photo-wrap'; w.id = `tw${idx}`;
+  w.innerHTML = `<img class="photo-thumb" src="${src}"><button class="photo-rm" onclick="removePhoto(${idx})">✕</button>`;
+  row.appendChild(w);
+}
+function removePhoto(idx) {
+  S.photos.splice(idx, 1);
+  document.getElementById('photoRow').innerHTML = '';
+  S.photos.forEach((src, i) => addThumb(src, i));
+  if (!S.photos.length) document.getElementById('faceBadge').classList.remove('show');
+}
+
+// ════════════════════════════════════════════
+// GRIDS
+// ════════════════════════════════════════════
+function renderStyleGrid() {
+  const g = document.getElementById('styleGrid');
+  g.innerHTML = '';
+  ART_STYLES.forEach(s => {
+    const d = document.createElement('div');
+    d.className = 'style-card' + (S.style?.id === s.id ? ' on' : '');
+    d.innerHTML = `${s.tag ? `<div style="position:absolute;top:7px;left:8px;background:var(--coral);color:#fff;border-radius:var(--pill);padding:2px 9px;font-size:9px;font-weight:800">${s.tag}</div>` : ''}
+      <div class="style-art">${s.art}</div>
+      <div class="style-name">${s.name}</div>
+      <div class="style-tag">AI generated</div>`;
+    d.onclick = () => { document.querySelectorAll('.style-card').forEach(c => c.classList.remove('on')); d.classList.add('on'); S.style = s; };
+    g.appendChild(d);
+  });
+}
+
+function renderThemeGrid() {
+  const g = document.getElementById('themeGrid');
+  g.innerHTML = '';
+  THEMES.forEach(t => {
+    const d = document.createElement('div');
+    d.className = 'theme-card' + (S.theme?.id === t.id ? ' on' : '');
+    d.innerHTML = `<div class="theme-cover" style="background:${t.grad}">${t.emoji}</div>
+      <div class="theme-body"><div class="theme-name">${t.name}</div><div class="theme-desc">AI illustrated scenes</div></div>`;
+    d.onclick = () => { document.querySelectorAll('.theme-card').forEach(c => c.classList.remove('on')); d.classList.add('on'); S.theme = t; };
+    g.appendChild(d);
+  });
+}
+
+function initAgeSlider() {
+  const sl = document.getElementById('ageSlider');
+  if (sl) updateAge(sl);
+}
+function updateAge(sl) {
+  const v = sl.value, p = ((v - 2) / 8) * 100;
+  sl.style.setProperty('--pct', p + '%');
+  sl.style.background = `linear-gradient(to right,var(--blue) 0%,var(--blue) ${p}%,var(--light) ${p}%)`;
+  document.getElementById('ageNum').innerHTML = `${v} <span>years old</span>`;
+  S.age = parseInt(v);
+}
+
+function solo(el, gid, cls) {
+  document.querySelectorAll(`#${gid} .chip`).forEach(c => c.classList.remove('on','on-coral','on-green'));
+  el.classList.add('on', cls);
+}
+function multiChip(el, max) {
+  if (el.classList.contains('on')) { el.classList.remove('on'); return; }
+  if (document.querySelectorAll('#traitChips .chip.on').length >= max) { toast('⚠️ Max 3 traits — deselect one first'); return; }
+  el.classList.add('on');
+}
+
+// ════════════════════════════════════════════
+// REPLICATE API
+// ════════════════════════════════════════════
+async function replicateRun(model, input, onProgress) {
+  if (!S.token) throw new Error('No token');
+
+  const createResp = await fetch(replicateProxy('/v1/predictions'), {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${S.token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ version: model.split(':')[1], input }),
+  });
+
+  if (!createResp.ok) {
+    const err = await createResp.text();
+    console.error('Replicate create failed:', createResp.status, err);
+    throw new Error(`Replicate ${createResp.status}: ${err.substring(0, 200)}`);
+  }
+  const predJson = await createResp.json();
+  console.log('Prediction created:', predJson.id, 'status:', predJson.status);
+
+  const pred = await createResp.json();
+  const getUrl = pred.urls?.get || `${REPLICATE_API}/predictions/${pred.id}`;
+
+  // Poll for result
+  for (let i = 0; i < 180; i++) {
+    await wait(3000);
+    // Convert full Replicate URL to go through our proxy
+    const pollPath = getUrl.replace('https://api.replicate.com', '');
+    const poll = await fetch(replicateProxy(pollPath), { headers: { 'Authorization': `Bearer ${S.token}` } });
+    const result = await poll.json();
+    if (onProgress) onProgress(result.status);
+    if (result.status === 'succeeded') {
+      const out = result.output;
+      // Convert output URL to base64 data URL
+      const imgUrl = Array.isArray(out) ? out[0] : out;
+      // Fetch image through server proxy (converts to base64)
+      const imgProxyResp = await fetch(API_BASE + '/api/image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: imgUrl }),
+      });
+      if (!imgProxyResp.ok) throw new Error('Image proxy failed: ' + imgProxyResp.status);
+      const imgData = await imgProxyResp.json();
+      return imgData.dataUrl;
+    }
+    if (result.status === 'failed' || result.status === 'canceled') {
+      console.error('Prediction failed details:', JSON.stringify(result));
+      throw new Error(`Prediction ${result.status}: ${result.error || JSON.stringify(result.logs || 'no logs')}`);
+    }
+  }
+  throw new Error('Timeout');
+}
+
+function blobToDataURL(blob) {
+  return new Promise((res, rej) => {
+    const reader = new FileReader();
+    reader.onload = () => res(reader.result);
+    reader.onerror = rej;
+    reader.readAsDataURL(blob);
+  });
+}
+
+function dataURLToBlob(dataURL) {
+  const [header, data] = dataURL.split(',');
+  const mime = header.match(/:(.*?);/)[1];
+  const binary = atob(data);
+  const arr = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) arr[i] = binary.charCodeAt(i);
+  return new Blob([arr], { type: mime });
+}
+
+// Upload base64 image to server, get back a temporary URL Replicate can access
+async function uploadImageForReplicate(base64DataUrl) {
+  const resp = await fetch(API_BASE + '/api/upload', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ dataUrl: base64DataUrl }),
+  });
+  if (!resp.ok) throw new Error('Upload failed: ' + resp.status);
+  const data = await resp.json();
+  return data.url;
+}
+
+// Generate face → animated character using face-to-many
+async function genCharacter(photoBase64, style) {
+  // face-to-many needs a publicly accessible URL, not base64
+  const imageUrl = await uploadImageForReplicate(photoBase64);
+  return await replicateRun(MODELS.faceToMany, {
+    image: imageUrl,
+    style: style.faceStyle || '3d',
+    prompt: style.charPrompt,
+    negative_prompt: style.neg,
+    num_outputs: 1,
+    guidance_scale: 7.5,
+  });
+}
+
+// Generate cinematic scene using SDXL Lightning
+async function genScene(scenePrompt, style, childName) {
+  const prompt = [
+    style.scenePrompt,
+    scenePrompt,
+    `featuring an animated ${style.name} style child hero named ${childName} as main character`,
+    'single child hero clearly visible, full body, dynamic pose',
+    'cinematic composition, award-winning illustration, vibrant, ultra detailed',
+  ].join(', ');
+
+  return await replicateRun(MODELS.sdxl, {
+    prompt,
+    negative_prompt: style.neg + ', text, watermark, multiple people, adult only, dark, scary, logo',
+    width: 1024,
+    height: 768,
+    num_inference_steps: 4,
+    guidance_scale: 0,
+    scheduler: 'K_EULER',
+    num_outputs: 1,
+  });
+}
+
+// ════════════════════════════════════════════
+// GENERATION PIPELINE
+// ════════════════════════════════════════════
+async function startGeneration() {
+  syncState();
+  if (!S.theme) { showErr('e4'); return; }
+
+  // Reset
+  S.story = []; S.images = {}; S.charImg = null;
+  document.getElementById('genPreviewRow').innerHTML = '';
+  show('generating');
+
+  const setBar  = (p,h,s) => { document.getElementById('genBar').style.width=p+'%'; document.getElementById('genPct').textContent=p+'%'; if(h)document.getElementById('genH').textContent=h; if(s)document.getElementById('genSub').textContent=s; };
+  const setStep = (active) => {
+    ['gs1','gs2','gs3','gs4','gs5'].forEach((id,i) => {
+      const el = document.getElementById(id);
+      el.classList.remove('done','active');
+      if (i < active) { el.classList.add('done'); const ic = el.querySelector('.gen-step-icon,.gen-spinner'); if(ic){ic.className='gen-step-icon';ic.textContent='✅';} }
+      if (i === active) { el.classList.add('active'); const ic = el.querySelector('.gen-step-icon'); if(ic){ic.className='gen-spinner';ic.textContent='';} }
+    });
+  };
+  const addPreview = (label) => {
+    const row = document.getElementById('genPreviewRow');
+    const t = document.createElement('div');
+    t.className = 'gen-thumb loading'; t.textContent = '🎨'; t.id = `gtp-${label}`;
+    row.appendChild(t); return t;
+  };
+  const fillPreview = (el, src) => {
+    if (!el || !src) return;
+    el.classList.remove('loading');
+    el.innerHTML = `<img src="${src}" alt="">`;
+  };
+
+  const hasAI = !!(S.token && !S.isDemo);
+  document.getElementById('genSub').textContent = hasAI
+    ? `Replicate is generating real AI illustrations. Approx ${S.story.length > 8 ? '4–6' : '2–4'} minutes.`
+    : 'Demo mode — generating story text with placeholder images.';
+  document.getElementById('genAnim').textContent = S.style?.art || '📖';
+
+  // ── 1. Write story ───────────────────────
+  setStep(0); setBar(5, 'Writing your story…', 'Claude AI is crafting your personalised adventure…');
+  try { await callClaude(); }
+  catch(e) { console.warn('Claude failed, using fallback:', e.message); buildFallback(); }
+  setStep(1); setBar(20, '✅ Story written!', 'Now generating illustrations…');
+  await wait(400);
+
+  // ── 2. Generate character from photo ─────
+  setStep(1);
+  setBar(24, hasAI ? `Converting ${S.name}'s photo → ${S.style?.name} character…` : 'Preparing illustrations…', '');
+  if (hasAI && S.photos[0]) {
+    try {
+      const charThumb = addPreview('char');
+      const charImg = await genCharacter(S.photos[0], S.style);
+      S.charImg = charImg;
+      fillPreview(charThumb, charImg);
+      setBar(35, `✅ Character created — ${S.name} is now a ${S.style?.name} hero!`, '');
+    } catch(e) {
+      console.warn('Character gen failed:', e.message);
+      const cm = `Char: ${e.message.substring(0,200)}`; toast(`⚠️ ${cm}`); logError(cm);
+      console.error('Character full error:', e.message);
+      S.charImg = S.photos[0]; // fall back to original photo
+    }
+  } else {
+    S.charImg = S.photos[0] || null;
+  }
+  await wait(300);
+
+  // ── 3. Cover scene ────────────────────────
+  setStep(2); setBar(37, 'Generating cover illustration…', 'Painting the cinematic cover scene…');
+  if (hasAI) {
+    try {
+      const coverThumb = addPreview('cover');
+      const coverPrompt = [
+        S.theme.env,
+        'epic wide shot establishing scene, hero standing centre frame, full body visible',
+        'sweeping landscape, dramatic sky, magical atmosphere, masterpiece',
+      ].join(', ');
+      const coverImg = await genScene(coverPrompt, S.style, S.name);
+      S.images['cover'] = coverImg;
+      fillPreview(coverThumb, coverImg);
+      setBar(46, '✅ Cover done!', 'Now illustrating story pages…');
+    } catch(e) {
+      console.warn('Cover failed:', e.message);
+      toast('⚠️ Cover generation failed — continuing with pages');
+    }
+  }
+  await wait(200);
+
+  // ── 4. Story pages ────────────────────────
+  setStep(3);
+  const total = S.story.length;
+  for (let i = 0; i < total; i++) {
+    const pg = S.story[i];
+    const pct = 48 + Math.round((i / total) * 45);
+    setBar(pct, `Page ${i+1}/${total}: Generating scene…`, `"${(pg.sceneDesc || pg.text).substring(0,55)}…"`);
+    if (hasAI) {
+      try {
+        const thumb = addPreview(i);
+        const scenePrompt = [
+          S.theme.env,
+          pg.sceneDesc || pg.text.substring(0, 90),
+          `${pg.mood} mood, single child hero as main subject`,
+        ].join(', ');
+        const img = await genScene(scenePrompt, S.style, S.name);
+        S.images[i] = img;
+        fillPreview(thumb, img);
+        setBar(pct, `✅ Page ${i+1}/${total} done!`, '');
+      } catch(e) {
+        console.warn(`Page ${i} failed:`, e.message);
+        const em = `P${i+1}: ${e.message.substring(0,200)}`; toast(`⚠️ ${em}`); logError(em);
+        console.error(`Page ${i} full error:`, e.message);
+      }
+    }
+    await wait(60);
+  }
+
+  setStep(4); setBar(100, `🎉 ${S.name}'s book is ready!`, '');
+  await wait(700);
+  buildPreview();
+  document.getElementById('previewTitle').textContent = `✨ ${S.name} and the ${S.theme.name}`;
+  show('preview');
+}
+
+// ════════════════════════════════════════════
+// CLAUDE STORY GENERATION
+// ════════════════════════════════════════════
+async function callClaude() {
+  const n = S.name || 'the hero';
+  const pronoun = S.pronouns.toLowerCase().includes('she') ? 'she/her' : S.pronouns.toLowerCase().includes('he') ? 'he/him' : 'they/them';
+  const traits = S.traits.join(', ') || 'adventurous and kind';
+  const pages = S.age >= 7 ? 10 : 8;
+
+  const prompt = `You are a professional children's picture book author. Write a personalised, cinematic, emotionally powerful ${pages}-page storybook.
+
+HERO: ${n}, age ${S.age}, pronouns ${pronoun}
+CHARACTER STYLE: ${S.style?.name || 'illustrated'}
+PERSONALITY: ${traits}
+${S.power ? `SPECIAL GIFT: "${S.power}"` : ''}
+${S.pet ? `PET COMPANION: ${S.pet} — appears as loyal sidekick in at least 3 pages` : ''}
+THEME: ${S.theme?.name || 'Adventure'} — ${S.theme?.env || ''}
+MOOD: ${S.mood}
+
+STRUCTURE: Pages 1–2: introduction & ordinary world. Pages 3–4: magical discovery. Pages 5–7: exciting challenge requiring ${n}'s unique traits. Pages 8${pages > 8 ? '–9' : ''}: triumphant resolution. Final page: heartwarming ending.
+
+Rules: 2–3 sentences per page. Age-appropriate for ${S.age}-year-olds. Use ${n}'s name naturally. Make every page exciting and visual.
+
+Output ONLY a valid JSON array. No markdown. No backticks. No preamble.
+
+[{"page":1,"text":"2-3 sentences","sceneDesc":"15-25 word visual description for AI image generator","emoji":"single best scene emoji","mood":"wonder|excitement|challenge|triumph|warmth|funny|discovery|kindness"}]`;
+
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 2200, messages: [{ role: 'user', content: prompt }] }),
+  });
+  if (!resp.ok) throw new Error('Claude API ' + resp.status);
+  const data = await resp.json();
+  const raw = data.content.map(b => b.text || '').join('').trim().replace(/^```[a-z]*\n?/, '').replace(/```$/, '').trim();
+  const parsed = JSON.parse(raw);
+  if (!Array.isArray(parsed) || !parsed.length) throw new Error('Bad story structure');
+  S.story = parsed;
+}
+
+function buildFallback() {
+  const n = S.name || 'our hero';
+  const e = S.theme?.emoji || '🌟';
+  const envs = {
+    'Enchanted Forest': ['🌲','🦊','🍄','🌸','✨','🦋','🌿','⭐','🎉','💚'],
+    'Space Explorer':   ['🚀','🌙','⭐','🪐','🌟','🛸','💫','🌌','🎉','👨‍🚀'],
+    'Ocean Kingdom':    ['🌊','🐬','🐙','💎','🦈','🧜','🏝️','🐚','🎉','💙'],
+    'Kingdom of Heroes':['🏰','⚔️','🐉','👑','🛡️','✨','🗺️','🌹','🎉','💜'],
+    'Safari Adventure': ['🦁','🐘','🦒','🌅','🦓','🐆','🌍','🦅','🎉','🧡'],
+    'Superhero City':   ['🦸','⚡','🌆','💥','🚨','🌟','🎯','🦹','🎉','❤️'],
+    'Dino World':       ['🦕','🌋','🦖','🌿','🥚','🦎','🌄','💎','🎉','💚'],
+    'Galaxy Far Away':  ['🌌','🛸','⭐','🪐','💫','🌟','👾','🌠','🎉','💫'],
+  };
+  const em = envs[S.theme?.name] || [e,'⭐','✨','🌟','💫','🎉','🌈','❤️','🥳','💛'];
+  S.story = [
+    {page:1,text:`One extraordinary morning, ${n} woke up knowing today was going to be different. A trail of golden light led straight to the heart of the ${S.theme?.name}. Heart pounding with excitement, ${n} took a deep breath and stepped forward.`,sceneDesc:`${n} discovering a glowing trail leading to the ${S.theme?.name}, morning light, wonder`,emoji:em[0],mood:'wonder'},
+    {page:2,text:`The ${S.theme?.name} was more breathtaking than anything ${n} had ever imagined. Colours moved like living paint, and the air itself sparkled with ancient magic. "This place knows my name," ${n} whispered in amazement.`,sceneDesc:`${n} exploring the ${S.theme?.name}, wide-eyed wonder, vibrant magical environment`,emoji:em[1],mood:'wonder'},
+    {page:3,text:`A remarkable creature stepped forward with shimmering eyes and a warm smile. "We've been waiting for someone exactly like you," it said. ${n} felt a glow of pride and stepped closer to listen.`,sceneDesc:`${n} meeting a magical friendly creature, eye contact, trust, magical setting`,emoji:em[2],mood:'discovery'},
+    {page:4,text:`But deep in the heart of the ${S.theme?.name}, something was terribly wrong. A great darkness was spreading, and all the creatures turned to ${n} with eyes full of hope. The answer had to come from within.`,sceneDesc:`Dark threat encroaching on the magical world, ${n} stepping up as hero, dramatic`,emoji:em[3],mood:'challenge'},
+    {page:5,text:`${n} thought carefully, drawing on every wonderful thing that made ${n} who they were — ${S.traits.slice(0,2).join(' and ') || 'brave and kind'}. A warm glow began to shine from deep inside.`,sceneDesc:`${n} gathering inner strength, glowing with determination, magical energy building`,emoji:em[4],mood:'excitement'},
+    {page:6,text:`With a mighty, joyful shout, ${n} pushed the light outward like a sunrise. It rolled across the world in waves, turning grey to gold and silence to music. The ${S.theme?.name} roared back to life.`,sceneDesc:`${n} releasing magical light, world transforming, triumphant colours spreading everywhere`,emoji:em[5],mood:'triumph'},
+    {page:7,text:`Every creature celebrated with the grandest party ever seen. Stars danced overhead, music filled every corner, and ${n} was lifted high on the shoulders of new friends. "You are the hero we always needed!"`,sceneDesc:`Epic celebration, ${n} lifted by celebrating creatures, stars, music, joy`,emoji:em[6],mood:'triumph'},
+    {page:8,text:`As the moon rose gently, ${n} made the happy journey home — heart full and head full of wonderful memories. The greatest adventures show you the magic that was inside you all along.`,sceneDesc:`${n} walking home at sunset, glowing magical world behind, peaceful and warm`,emoji:em[7],mood:'warmth'},
+  ];
+}
+
+// ════════════════════════════════════════════
+// BUILD PREVIEW
+// ════════════════════════════════════════════
+const BG = ['linear-gradient(135deg,#1E3A8A,#4C1D95)','linear-gradient(135deg,#14532D,#166534)','linear-gradient(135deg,#7F1D1D,#831843)','linear-gradient(135deg,#3B0764,#1E3A8A)','linear-gradient(135deg,#164E63,#1E40AF)','linear-gradient(135deg,#7C2D12,#713F12)','linear-gradient(135deg,#831843,#4C1D95)','linear-gradient(135deg,#166534,#164E63)','linear-gradient(135deg,#1E3A8A,#164E63)','linear-gradient(135deg,#7C2D12,#7F1D1D)'];
+const MOODS = {wonder:'✨ Wonder',excitement:'⚡ Exciting',challenge:'🌩️ Challenge',triumph:'🏆 Triumph',warmth:'💛 Warmth',funny:'😄 Funny',discovery:'🔍 Discovery',kindness:'💚 Kindness',celebration:'🎉 Celebration'};
+
+function buildPreview() {
+  const scroll = document.getElementById('bookScroll');
+  scroll.innerHTML = '';
+  const n = S.name || 'Your Hero';
+  const photo = S.charImg || S.photos[0] || null;
+
+  // Cover
+  const cover = document.createElement('div');
+  cover.className = 'story-cover';
+  const coverSrc = S.images['cover'];
+  const coverBg = coverSrc ? `<img class="story-cover-img" src="${coverSrc}" alt="Cover">` : `<div class="story-cover-placeholder" style="background:${S.theme?.grad || '#1E3A8A'}">${S.theme?.emoji || '🌟'}</div>`;
+  cover.innerHTML = `
+    ${coverBg}
+    ${S.ded ? `<div class="story-cover-ded">${S.ded}</div>` : ''}
+    <div class="story-cover-brand">StorySpark</div>
+    <div class="story-cover-overlay">
+      <div class="story-cover-title">${n} and the ${S.theme?.name || 'Adventure'}</div>
+      <div class="story-cover-meta">${S.style?.name || 'AI Illustrated'} · ${S.story.length} pages · ${S.mood}</div>
+    </div>`;
+  scroll.appendChild(cover);
+
+  S.story.forEach((pg, idx) => {
+    const card = document.createElement('div');
+    card.className = 'page-card'; card.id = `sp${idx}`;
+    card.style.setProperty('--dl', (idx * 0.06) + 's');
+    const pageSrc = S.images[idx];
+    const illoHTML = pageSrc
+      ? `<img class="page-illo-img" src="${pageSrc}" alt="Page ${pg.page}">`
+      : `<div class="page-illo-placeholder" style="background:${BG[idx%BG.length]}"><div class="page-illo-emoji">${pg.emoji || S.theme?.emoji}</div></div>`;
+    const pinHTML = photo ? `<img class="page-child-pin" src="${photo}" alt="${n}">` : '';
+    card.innerHTML = `
+      <div class="page-illo">
+        ${illoHTML}
+        <div class="page-num-tag">Page ${pg.page}</div>
+        ${pinHTML}
+        <div class="page-mood-tag">${MOODS[pg.mood] || pg.mood}</div>
+      </div>
+      <div class="page-text-body">
+        <div class="page-text-label">Page ${pg.page} of ${S.story.length}</div>
+        <div class="page-text-p" id="pt${idx}">${pg.text}</div>
+        <div class="page-actions">
+          <button class="page-btn" onclick="openEdit(${idx})">✏️ Edit text</button>
+          <button class="page-btn regen" onclick="regenPageImg(${idx})">🎨 New image</button>
+          <button class="page-btn regen" onclick="regenPageTxt(${idx})">🔄 New text</button>
+        </div>
+      </div>`;
+    scroll.appendChild(card);
+  });
+}
+
+// ════════════════════════════════════════════
+// REGEN
+// ════════════════════════════════════════════
+async function regenPageImg(idx) {
+  if (!S.token || S.isDemo) { toast('⚠️ Add your Replicate token to generate images'); return; }
+  const pg = S.story[idx];
+  const illoArea = document.getElementById(`sp${idx}`)?.querySelector('.page-illo');
+  const existImg = illoArea?.querySelector('.page-illo-img');
+  if (existImg) existImg.style.opacity = '.3';
+  toast('🎨 Generating new scene…');
+  try {
+    const scenePrompt = [S.theme?.env || '', pg.sceneDesc || pg.text.substring(0, 90), `${pg.mood} mood`].join(', ');
+    const img = await genScene(scenePrompt, S.style, S.name);
+    S.images[idx] = img;
+    if (existImg) { existImg.src = img; existImg.style.opacity = '1'; }
+    else if (illoArea) {
+      const newImg = document.createElement('img');
+      newImg.className = 'page-illo-img'; newImg.src = img;
+      illoArea.querySelector('.page-illo-placeholder')?.replaceWith(newImg);
+    }
+    toast('✅ New image generated!');
+  } catch(e) {
+    if (existImg) existImg.style.opacity = '1';
+    toast(`⚠️ Failed: ${e.message.substring(0, 60)}`);
+    console.error(e);
+  }
+}
+
+async function regenPageTxt(idx) {
+  const el = document.getElementById(`pt${idx}`);
+  const orig = el.textContent;
+  el.style.opacity = '.4'; el.textContent = '✨ Rewriting…';
+  try {
+    const prompt = `Rewrite ONLY page ${idx + 1} of a children's story.
+Hero: ${S.name}, age ${S.age}. Theme: ${S.theme?.name}. Style: ${S.style?.name}. Mood: ${S.mood}.
+Current text: "${orig}"
+Write a completely different version — same length (2-3 sentences), same narrative position.
+Output ONLY the new text. No labels, no quotes.`;
+    const resp = await fetch('https://api.anthropic.com/v1/messages', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:200,messages:[{role:'user',content:prompt}]}) });
+    if (!resp.ok) throw new Error();
+    const data = await resp.json();
+    const t = data.content.map(b => b.text||'').join('').trim();
+    if (t) { S.story[idx].text = t; el.textContent = t; toast('✅ Text updated!'); }
+  } catch { el.textContent = orig; toast('⚠️ Try again'); }
+  el.style.opacity = '1';
+}
+
+async function regenAll() {
+  const btn = document.getElementById('regenBtn');
+  btn.disabled = true; btn.textContent = '⏳';
+  try { await callClaude(); } catch { buildFallback(); }
+  buildPreview(); toast('✅ Story regenerated!');
+  btn.disabled = false; btn.textContent = '🔄';
+}
+
+// ════════════════════════════════════════════
+// EDIT MODAL
+// ════════════════════════════════════════════
+function openEdit(idx) { S.editIdx=idx; document.getElementById('editTa').value=S.story[idx].text; document.getElementById('editModal').classList.add('open'); }
+function closeEdit() { document.getElementById('editModal').classList.remove('open'); S.editIdx=-1; }
+function saveEdit() { const t=document.getElementById('editTa').value.trim(); if(!t||S.editIdx<0)return; S.story[S.editIdx].text=t; document.getElementById(`pt${S.editIdx}`).textContent=t; closeEdit(); toast('✅ Saved!'); }
+document.getElementById('editModal').addEventListener('click', e => { if(e.target===document.getElementById('editModal'))closeEdit(); });
+
+// ════════════════════════════════════════════
+// PURCHASE & SUCCESS
+// ════════════════════════════════════════════
+function selFormat(el, price) {
+  document.querySelectorAll('.format-card').forEach(c=>c.classList.remove('on'));
+  el.classList.add('on'); S.selPrice=price;
+  document.getElementById('checkoutPrice').textContent=price;
+}
+function doCheckout() {
+  if (!S.selPrice) { toast('⚠️ Please select a format first'); return; }
+  const n=S.name||'Your Hero';
+  document.getElementById('successH').textContent=`${n}'s story is ready! 🎉`;
+  document.getElementById('successSub').textContent=`"${n} and the ${S.theme?.name}" — enjoy reading it together tonight!`;
+  saveToDashboard();
+  show('success');
+  setTimeout(confetti, 300);
+}
+
+// ════════════════════════════════════════════
+// MY BOOKS DASHBOARD
+// ════════════════════════════════════════════
+function saveToDashboard() {
+  S.books.unshift({
+    id: Date.now(),
+    title: `${S.name} and the ${S.theme?.name}`,
+    coverImg: S.images['cover'] || null,
+    grad: S.theme?.grad || BG[0],
+    emoji: S.theme?.emoji || '🌟',
+    date: new Date().toLocaleDateString('en-ZA',{day:'numeric',month:'short',year:'numeric'}),
+    story: [...S.story],
+    images: {...S.images},
+    charImg: S.charImg,
+    name: S.name, age: S.age, theme: S.theme, style: S.style, mood: S.mood, ded: S.ded,
+  });
+}
+function renderMyBooks() {
+  const list = document.getElementById('booksList');
+  if (!S.books.length) {
+    list.innerHTML=`<div class="empty-books"><div class="empty-icon">📚</div><div class="empty-h">No books yet!</div><div class="empty-sub">Create your first personalised AI storybook — your child will love it.</div></div>`;
+    return;
+  }
+  list.innerHTML='';
+  S.books.forEach(book => {
+    const card=document.createElement('div'); card.className='book-card';
+    const coverHTML=book.coverImg?`<img src="${book.coverImg}" alt="${book.title}" style="width:100%;height:100%;object-fit:cover;display:block">`:`<div class="book-card-cover-placeholder" style="background:${book.grad}">${book.emoji}</div>`;
+    card.innerHTML=`
+      <div class="book-card-cover">${coverHTML}<div class="book-card-title-overlay">${book.title}</div><div class="book-card-brand">StorySpark</div></div>
+      <div class="book-card-body">
+        <div class="book-card-row"><div class="book-date">${book.date}</div><div class="book-status">Preview Approved</div></div>
+        <div class="book-actions">
+          <button class="btn-view-book" onclick="viewBook(${book.id})">👁 View Preview</button>
+          <button class="btn-del" onclick="delBook(${book.id})">🗑</button>
+        </div>
+      </div>`;
+    list.appendChild(card);
+  });
+}
+function viewBook(id) {
+  const b=S.books.find(x=>x.id===id); if(!b)return;
+  Object.assign(S,{story:b.story,images:b.images,charImg:b.charImg,name:b.name,age:b.age,theme:b.theme,style:b.style,mood:b.mood,ded:b.ded});
+  buildPreview();
+  document.getElementById('previewTitle').textContent=`✨ ${b.title}`;
+  show('preview');
+}
+function delBook(id) {
+  if(!confirm('Delete this story?'))return;
+  S.books=S.books.filter(b=>b.id!==id); renderMyBooks(); toast('🗑 Deleted');
+}
+
+// ════════════════════════════════════════════
+// PDF DOWNLOAD
+// ════════════════════════════════════════════
+async function downloadPDF() {
+  const {jsPDF}=window.jspdf; if(!jsPDF){toast('⚠️ PDF library loading…');return;}
+  const n=S.name||'Your Hero';
+  const ov=document.getElementById('pdfOv'),bar=document.getElementById('pdfBar'),pct=document.getElementById('pdfPct'),ph=document.getElementById('pdfH'),ps=document.getElementById('pdfSub');
+  const set=(p,h,s)=>{bar.style.width=p+'%';pct.textContent=p+'%';if(h)ph.textContent=h;if(s)ps.textContent=s;};
+  ov.classList.add('show'); set(5,'Preparing…','Packaging your storybook…'); await wait(100);
+  const doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a5'});
+  const PW=doc.internal.pageSize.getWidth(),PH=doc.internal.pageSize.getHeight();
+  const cx=(t,y,sz,b,c)=>{doc.setFontSize(sz);doc.setFont('helvetica',b?'bold':'normal');doc.setTextColor(c||'#FFFFFF');doc.text(t,PW/2,y,{align:'center'});};
+  const dots=(x,y,w,h,col,sp,r)=>{doc.setFillColor(col);for(let row=0;row*sp<h+sp;row++)for(let col2=0;col2*sp<w+sp;col2++){const dx=x+col2*sp+(row%2?sp/2:0),dy=y+row*sp;if(dx>=x&&dx<=x+w&&dy>=y&&dy<=y+h)doc.circle(dx,dy,r,'F');}};
+
+  // Cover
+  set(12,'Drawing cover…',''); await wait(80);
+  doc.setFillColor('#12133A'); doc.rect(0,0,PW,PH,'F');
+  doc.setGState(new doc.GState({opacity:.06})); dots(0,0,PW,PH,'#FFFFFF',10,1); doc.setGState(new doc.GState({opacity:1}));
+  const coverSrc=S.images['cover'];
+  if(coverSrc){try{doc.addImage(coverSrc,'JPEG',0,0,PW,PH,'','FAST');doc.setFillColor(0,0,0);doc.setGState(new doc.GState({opacity:.5}));doc.rect(0,PH*.55,PW,PH*.45,'F');doc.setGState(new doc.GState({opacity:1}));}catch(e){}}
+  cx(`${n} and the ${S.theme?.name||'Adventure'}`,PH*.72,18,true,'#FFFFFF');
+  cx(`${S.style?.name||'AI Illustrated'} · ${S.story.length} pages`,PH*.81,7,false,'rgba(255,255,255,.6)');
+  cx('StorySpark✦',9,7,true,'#F59E0B');
+  if(S.ded){doc.setGState(new doc.GState({opacity:.65}));cx(`"${S.ded}"`,PH-6,6,false,'#FFFFFF');doc.setGState(new doc.GState({opacity:1}));}
+
+  const PALS=['#1E3A8A','#14532D','#7F1D1D','#3B0764','#164E63','#7C2D12','#831843','#166534','#1E3A8A','#4C1D95'];
+  for(let idx=0;idx<S.story.length;idx++){
+    const pg=S.story[idx],pal=PALS[idx%PALS.length];
+    const p=12+Math.round((idx/S.story.length)*82);
+    set(p,`Page ${idx+1} of ${S.story.length}…`,`"${pg.text.substring(0,40)}…"`); await wait(50);
+    doc.addPage();
+    const illoW=PW*.46;
+    // Left: scene
+    const pageSrc=S.images[idx];
+    if(pageSrc){try{doc.addImage(pageSrc,'JPEG',0,0,illoW,PH,'','FAST');}catch(e){doc.setFillColor(pal);doc.rect(0,0,illoW,PH,'F');doc.setFontSize(40);doc.setTextColor('#FFFFFF');doc.text(pg.emoji||'🌟',illoW/2,PH/2,{align:'center'});}}
+    else{doc.setFillColor(pal);doc.rect(0,0,illoW,PH,'F');doc.setGState(new doc.GState({opacity:.06}));dots(0,0,illoW,PH,'#FFFFFF',10,.8);doc.setGState(new doc.GState({opacity:1}));doc.setFontSize(44);doc.setTextColor('#FFFFFF');doc.setGState(new doc.GState({opacity:.9}));doc.text(pg.emoji||S.theme?.emoji||'🌟',illoW/2,PH/2,{align:'center'});doc.setGState(new doc.GState({opacity:1}));}
+    // Child pin
+    const pinSrc=S.charImg||S.photos[0];
+    if(pinSrc){try{const pr=14,px=illoW-pr-5,py=PH-pr-6;doc.setFillColor('#F59E0B');doc.circle(px,py,pr+2.5,'F');doc.setFillColor(pal);doc.circle(px,py,pr+.8,'F');doc.addImage(pinSrc,'JPEG',px-pr,py-pr,pr*2,pr*2,'','FAST');doc.setDrawColor(pal);doc.setLineWidth(2.5);doc.circle(px,py,pr+.4,'D');}catch(e){}}
+    // Page chip
+    doc.setFillColor('#FFFFFF');doc.setGState(new doc.GState({opacity:.22}));doc.roundedRect(3,3,20,7,3,3,'F');doc.setGState(new doc.GState({opacity:1}));
+    doc.setFontSize(5.5);doc.setFont('helvetica','bold');doc.setTextColor('#FFFFFF');doc.text(`P${pg.page}`,6,8.5);
+    // Right: text
+    doc.setFillColor('#FFFDF8');doc.rect(illoW,0,PW-illoW,PH,'F');
+    doc.setFillColor(pal);doc.rect(illoW,0,PW-illoW,3,'F');
+    const tx=illoW+7,tw=PW-illoW-14;
+    doc.setFontSize(5.5);doc.setFont('helvetica','bold');doc.setTextColor(pal);doc.setGState(new doc.GState({opacity:.5}));doc.text(`${n}'s ${S.theme?.name||'Adventure'}`,tx,10);doc.setGState(new doc.GState({opacity:1}));
+    doc.setDrawColor(pal);doc.setLineWidth(.5);doc.setGState(new doc.GState({opacity:.3}));doc.line(tx,12,PW-7,12);doc.setGState(new doc.GState({opacity:1}));
+    doc.setFontSize(44);doc.setFont('helvetica','bold');doc.setTextColor(pal);doc.setGState(new doc.GState({opacity:.08}));doc.text('\u201C',tx-2,32);doc.setGState(new doc.GState({opacity:1}));
+    doc.setFontSize(10);doc.setFont('helvetica','normal');doc.setTextColor('#12133A');
+    doc.splitTextToSize(pg.text,tw).forEach((ln,li)=>doc.text(ln,tx,22+li*13));
+    doc.setFontSize(5.5);doc.setTextColor('#6B6F9A');doc.text(`${pg.page} of ${S.story.length}`,PW-7,PH-4,{align:'right'});
+    doc.setGState(new doc.GState({opacity:.4}));doc.text('StorySpark✦',PW/2+illoW/4,PH-2.5,{align:'center'});doc.setGState(new doc.GState({opacity:1}));
+  }
+
+  // Back cover
+  set(96,'Back cover…',''); await wait(50);
+  doc.addPage(); doc.setFillColor('#12133A'); doc.rect(0,0,PW,PH,'F');
+  doc.setGState(new doc.GState({opacity:.06}));dots(0,0,PW,PH,'#FFFFFF',10,1);doc.setGState(new doc.GState({opacity:1}));
+  if(pinSrc){try{const pr=22,bx=PW/2,by=PH/2-18;doc.setFillColor('#F59E0B');doc.circle(bx,by,pr+3,'F');doc.setFillColor('#12133A');doc.circle(bx,by,pr+1,'F');doc.addImage(pinSrc,'JPEG',bx-pr,by-pr,pr*2,pr*2,'','FAST');doc.setDrawColor('#12133A');doc.setLineWidth(3);doc.circle(bx,by,pr+.4,'D');cx('The End',by+pr+13,20,true,'#FFFFFF');cx(`${n}'s adventure`,by+pr+23,9,false,'#F59E0B');}catch(e){cx('The End',PH/2+6,22,true,'#FFFFFF');}}
+  else{cx('The End',PH/2+6,22,true,'#FFFFFF');}
+  cx('StorySpark✦',PH-7,7,true,'#F59E0B');
+
+  set(100,'✅ Done!',''); await wait(400);
+  doc.save(`${n.replace(/\s+/g,'_')}_StorySpark.pdf`);
+  ov.classList.remove('show');
+  toast('✅ PDF downloaded!');
+}
+
+// ════════════════════════════════════════════
+// CONFETTI
+// ════════════════════════════════════════════
+function confetti() {
+  const cols=['#3D52D5','#F59E0B','#EF4444','#10B981','#8B5CF6','#EC4899','#60A5FA'];
+  for(let i=0;i<70;i++){
+    const el=document.createElement('div'); el.className='confetti-p';
+    const sz=8+Math.random()*10;
+    el.style.cssText=`left:${Math.random()*100}vw;width:${sz}px;height:${sz}px;background:${cols[Math.floor(Math.random()*cols.length)]};border-radius:${Math.random()>.5?'50%':'3px'};--d:${2+Math.random()*3}s;--dl:${Math.random()*1.5}s`;
+    document.body.appendChild(el);
+    setTimeout(()=>el.remove(),5000);
+  }
+}
+
+// ════════════════════════════════════════════
+// UTILS
+// ════════════════════════════════════════════
+function wait(ms) { return new Promise(r => setTimeout(r,ms)); }
+
+function logError(msg) {
+  const log = document.getElementById('errorLog');
+  if (log) {
+    log.style.display = 'block';
+    log.innerHTML += msg.replace(/</g,'&lt;') + '<br>';
+    log.scrollTop = log.scrollHeight;
+  }
+  console.error(msg);
+}
+
+function toast(msg) {
+  const t=document.getElementById('toastEl');
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),8000);
+}
+
+function showErr(id) { const el=document.getElementById(id); if(el){el.classList.add('show');setTimeout(()=>el.classList.remove('show'),4000);} }
+function hideErr(id) { const el=document.getElementById(id); if(el)el.classList.remove('show'); }
+
+function resetAll() {
+  Object.assign(S,{photos:[],pet:'',name:'',age:6,pronouns:'He/Him',traits:['Kind','Nature lover'],power:'',ded:'',style:null,theme:null,mood:'Heartwarming',story:[],images:{},charImg:null,editIdx:-1,selPrice:null});
+  document.getElementById('photoRow').innerHTML='';
+  document.getElementById('faceBadge').classList.remove('show');
+  document.getElementById('photoInput').value='';
+  ['petInput','nameInput','powerInput','dedicationInput'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('ageSlider').value=6; updateAge(document.getElementById('ageSlider'));
+  document.getElementById('checkoutPrice').textContent='select above';
+  document.querySelectorAll('.format-card').forEach(c=>c.classList.remove('on'));
+  renderStyleGrid(); renderThemeGrid();
+  showLanding();
+}
+</script>
+</body>
+</html>
