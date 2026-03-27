@@ -220,8 +220,20 @@ Respond ONLY with a valid JSON array. No markdown, no backticks, no explanation:
         });
       }
 
-      const imgUrl=result?.images?.[0]?.url;
-      if(!imgUrl) throw new Error('No image URL in Fal response');
+      // Handle different fal.ai response structures
+      let imgUrl;
+      if(result?.images?.[0]?.url){
+        imgUrl=result.images[0].url;
+      }else if(result?.image?.url){
+        imgUrl=result.image.url;
+      }else if(result?.url){
+        imgUrl=result.url;
+      }else if(typeof result?.images==='string'){
+        imgUrl=result.images;
+      }else{
+        console.error('Unexpected Fal response:',JSON.stringify(result,null,2));
+        throw new Error('No image URL in Fal response');
+      }
       const {dataUrl}=await fetchImageB64(imgUrl);
       json(res,{dataUrl,url:imgUrl});return;
     }
@@ -232,8 +244,20 @@ Respond ONLY with a valid JSON array. No markdown, no backticks, no explanation:
       const {faceUrl,sceneUrl}=b;
       if(!FAL_KEY){json(res,{error:'FAL_KEY not set'},503);return;}
       const result=await falRun('fal-ai/face-swap',{base_image_url:sceneUrl,swap_image_url:faceUrl});
-      const imgUrl=result?.image?.url||result?.images?.[0]?.url;
-      if(!imgUrl) throw new Error('No image in face swap response');
+      // Handle different fal.ai response structures
+      let imgUrl;
+      if(result?.image?.url){
+        imgUrl=result.image.url;
+      }else if(result?.images?.[0]?.url){
+        imgUrl=result.images[0].url;
+      }else if(result?.url){
+        imgUrl=result.url;
+      }else if(typeof result?.images==='string'){
+        imgUrl=result.images;
+      }else{
+        console.error('Unexpected face swap response:',JSON.stringify(result,null,2));
+        throw new Error('No image in face swap response');
+      }
       const {dataUrl}=await fetchImageB64(imgUrl);
       json(res,{dataUrl,url:imgUrl});return;
     }
